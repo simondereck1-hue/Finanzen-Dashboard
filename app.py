@@ -105,6 +105,7 @@ def load_data(sheet_id):
 
     for df in [ausgaben, einnahmen]:
         if 'Datum' in df.columns:
+            # Explizite Angabe des Formats für Google Sheets TT.MM.JJJJ
             df['Datum'] = pd.to_datetime(df['Datum'], dayfirst=True, errors='coerce')
 
     return ausgaben, fixkosten, fix_einnahmen, einnahmen
@@ -129,12 +130,16 @@ for df in [df_ausgaben, df_einnahmen]:
 # Verfügbare Monate sammeln (Mapping von Label zu technischem Wert)
 filter_mapping = {}
 if not df_ausgaben.empty:
-    filter_mapping.update(dict(zip(df_ausgaben['Filter_Label'].dropna(), df_ausgaben['Monat_Jahr'].dropna())))
+    valid_ausgaben = df_ausgaben.dropna(subset=['Filter_Label', 'Monat_Jahr'])
+    filter_mapping.update(dict(zip(valid_ausgaben['Filter_Label'], valid_ausgaben['Monat_Jahr'])))
 if not df_einnahmen.empty:
-    filter_mapping.update(dict(zip(df_einnahmen['Filter_Label'].dropna(), df_einnahmen['Monat_Jahr'].dropna())))
+    valid_einnahmen = df_einnahmen.dropna(subset=['Filter_Label', 'Monat_Jahr'])
+    filter_mapping.update(dict(zip(valid_einnahmen['Filter_Label'], valid_einnahmen['Monat_Jahr'])))
 
-# Sortierung der Monate (neueste zuerst oder chronologisch)
-sorted_labels = sorted(filter_mapping.keys(), key=lambda x: datetime.strptime(filter_mapping[x], "%m-%Y"))
+# Sortierung der Monate (Neueste zuerst)
+sorted_labels = sorted(filter_mapping.keys(), 
+                      key=lambda x: datetime.strptime(filter_mapping[x], "%m-%Y"), 
+                      reverse=True)
 
 month_options = ["Gesamter Zeitraum", "Benutzerdefinierter Zeitraum"] + sorted_labels
 selected_label = st.sidebar.selectbox("Zeitraum wählen", month_options)
@@ -145,7 +150,7 @@ if selected_label == "Gesamter Zeitraum":
     filtered_einnahmen = df_einnahmen.copy()
 elif selected_label == "Benutzerdefinierter Zeitraum":
     col_start, col_end = st.sidebar.columns(2)
-    min_datum = df_ausgaben['Datum'].min() if not df_ausgaben.empty else datetime.today().date()
+    min_datum = df_ausgaben['Datum'].min().date() if not df_ausgaben.empty and pd.notnull(df_ausgaben['Datum'].min()) else datetime.today().date()
     start_date = col_start.date_input("Startdatum", value=min_datum)
     end_date = col_end.date_input("Enddatum", value=datetime.today().date())
     
@@ -226,7 +231,6 @@ with tabs[1]:
 
 # TAB 3: FIXKOSTEN
 with tabs[2]:
-    # Berechnung der monatlichen Basis-Summe und der skalierten Summe für den Zeitraum
     fix_monat_summe = df_fixkosten['Betrag'].sum() if not df_fixkosten.empty else 0
     fix_zeitraum_summe = fix_monat_summe * num_months
     
@@ -234,7 +238,6 @@ with tabs[2]:
     col1, col2 = st.columns([1.5, 1])
     with col1:
         if not df_fixkosten.empty:
-            # Erstellen einer Kopie für das Diagramm mit skalierten Beträgen
             df_fix_fig = df_fixkosten.copy()
             df_fix_fig['Betrag'] = df_fix_fig['Betrag'] * num_months
             fig_fix_pie = px.sunburst(df_fix_fig, path=['Kategorie', 'Unterkategorie'], values='Betrag', title=f"Fixkosten Verteilung ({num_months} Mon.)", height=600, color_discrete_sequence=COMPLEMENTARY_COLORS)
@@ -248,7 +251,8 @@ with tabs[2]:
             df_fix_table = df_fixkosten.copy()
             df_fix_table['Betrag'] = df_fix_table['Betrag'] * num_months
             if f_kat_fix: df_fix_table = df_fix_table[df_fix_table["Kategorie"].isin(f_kat_fix)]
-            if f_sub_fix: df_fix_table = df_fix_table[df_fix_table["Unterkategorie"].isin(f_sub_fix)]
+            if f_sub_fix: 
+                df_fix_table = df_fix_table[df_fix_table["Unterkategorie"].isin(f_sub_fix)]
             st.data_editor(df_fix_table, hide_index=True, use_container_width=True, key=f"fix_f_{st.session_state.mode}")
             st.info(f"**Summe ausgewählte Fixkosten: {df_fix_table['Betrag'].sum():,.2f} €**")
 
@@ -294,7 +298,8 @@ with tabs[4]:
             else:
                 d['Monat_Sort'] = pd.Series(dtype='object')
 
-        alle_monate_sort = sorted(list(set(df_v['Monat_Sort'].dropna().unique()) | set(df_e['Monat_Sort'].dropna().unique())))
+        alle_monate_sort = sorted(list(set(df_v['Monat_Sort'].dropna().unique()) |
+                                       set(df_e['Monat_Sort'].dropna().unique())))
 
         zeitstrahl_daten = []
         for m in alle_monate_sort:
@@ -451,7 +456,7 @@ if st.session_state.mode in ['simon', 'alisia']:
                 quote = (s_m / e_m * 100) if e_m > 0 else 0
                 y, mn = m.split('-')
                 trend_data.append({"Monat": f"{MONATE_DE[mn]} {y}", "Sparquote": quote, "Sort": m})
-            
+             
             if trend_data:
                 df_trend = pd.DataFrame(trend_data).sort_values("Sort")
                 fig_trend = px.line(df_trend, x='Monat', y='Sparquote', markers=True, title="Sparquote im Zeitverlauf (%)")
