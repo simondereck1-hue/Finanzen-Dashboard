@@ -67,6 +67,7 @@ def clean_betrag(series):
 def datum_zu_monat(x):
     """Wandelt ein Datum sicher in 'Monat Jahr' um, ignoriert NaT."""
     try:
+        # Sicherstellen, dass nur Monat und Jahr verwendet werden, um "Februar 1" Fehler zu vermeiden
         return f"{MONATE_DE[x.strftime('%m')]} {x.year}"
     except Exception:
         return None
@@ -202,6 +203,7 @@ with tabs[0]:
             st.info(f"**Summe ausgewählte Positionen: {df_filtered_table['Betrag'].sum():,.2f} €**")
         else:
             st.info("Keine Daten vorhanden.")
+    
     with col_l:
         if not df_all.empty:
             fig = px.sunburst(df_all, path=['Typ', 'Kategorie', 'Unterkategorie'], values='Betrag', height=600, color_discrete_sequence=COMPLEMENTARY_COLORS)
@@ -273,6 +275,7 @@ with tabs[3]:
             df_var_table = filtered_ausgaben.copy()
             if f_kat_var: df_var_table = df_var_table[df_var_table["Kategorie"].isin(f_kat_var)]
             if f_sub_var: df_var_table = df_var_table[df_var_table["Unterkategorie"].isin(f_sub_var)]
+            
             disp_df = df_var_table.copy()
             if not disp_df.empty and 'Datum' in disp_df.columns:
                 disp_df['Datum'] = disp_df['Datum'].dt.strftime('%d.%m.%Y')
@@ -298,8 +301,7 @@ with tabs[4]:
             else:
                 d['Monat_Sort'] = pd.Series(dtype='object')
 
-        alle_monate_sort = sorted(list(set(df_v['Monat_Sort'].dropna().unique()) |
-                                       set(df_e['Monat_Sort'].dropna().unique())))
+        alle_monate_sort = sorted(list(set(df_v['Monat_Sort'].dropna().unique()) | set(df_e['Monat_Sort'].dropna().unique())))
 
         zeitstrahl_daten = []
         for m in alle_monate_sort:
@@ -456,7 +458,7 @@ if st.session_state.mode in ['simon', 'alisia']:
                 quote = (s_m / e_m * 100) if e_m > 0 else 0
                 y, mn = m.split('-')
                 trend_data.append({"Monat": f"{MONATE_DE[mn]} {y}", "Sparquote": quote, "Sort": m})
-             
+            
             if trend_data:
                 df_trend = pd.DataFrame(trend_data).sort_values("Sort")
                 fig_trend = px.line(df_trend, x='Monat', y='Sparquote', markers=True, title="Sparquote im Zeitverlauf (%)")
