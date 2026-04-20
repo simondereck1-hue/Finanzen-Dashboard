@@ -22,19 +22,20 @@ with st.sidebar:
     if st.button("Alisias Finanzen", use_container_width=True):
         st.session_state.mode = 'alisia'
 
-    # Korrigierte Google Sheets URLs
     if st.session_state.mode == 'unser':
         st.success("Aktive Ansicht: Unsere Finanzen")
         SHEET_URL = "https://docs.google.com/spreadsheets/d/1y3lfS_jumaUDM-ms8NQWA_-MpVMWyfc0vGeWUIzX_Rc/"
+        CONNECTION_NAME = "unsere_finanzen"
         dashboard_title = "🚀 Unsere Finanzzentrale"
     elif st.session_state.mode == 'simon':
         st.info("Aktive Ansicht: Simons Finanzen")
         SHEET_URL = "https://docs.google.com/spreadsheets/d/1VUPcu7bMKC1ws4KYomeiCHuOfKlDdMwp7NiaOlv-AWI/"
+        CONNECTION_NAME = "simons_finanzen"
         dashboard_title = "👤 Simons Finanzzentrale"
     else:
         st.info("Aktive Ansicht: Alisias Finanzen")
-        # HIER WURDE DER LINK KORRIGIERT:
         SHEET_URL = "https://docs.google.com/spreadsheets/d/1eCvGkPpavtdgrj1_FgnMqyeMJS6ye6NmhGIf1O_E--4/"
+        CONNECTION_NAME = "alisias_finanzen"
         dashboard_title = "👤 Alisias Finanzzentrale"
 
 st.title(dashboard_title)
@@ -48,37 +49,29 @@ MONATE_DE = {
 }
 
 # --- 2. DATENFUNKTIONEN (Sicher für Google Sheets) ---
-# Caching hinzugefügt, damit die App schneller ist (lädt alle 10 Minuten neu)
 @st.cache_data(ttl=600)
-def load_data(url):
-    conn = st.connection("gsheets", type=GSheetsConnection)
+def load_data(connection_name, url):
+    conn = st.connection(connection_name, type=GSheetsConnection)
     
     ausgaben = conn.read(spreadsheet=url, worksheet="Ausgaben")
     fixkosten = conn.read(spreadsheet=url, worksheet="Fixkosten")
     fix_einnahmen = conn.read(spreadsheet=url, worksheet="Fix_Einnahmen")
     einnahmen = conn.read(spreadsheet=url, worksheet="Einnahmen")
     
-    # WICHTIG: Beträge bereinigen (Text zu echten Zahlen umwandeln)
     for df in [ausgaben, fixkosten, fix_einnahmen, einnahmen]:
         if 'Betrag' in df.columns:
-            # 1. In String umwandeln, falls nicht schon geschehen
             df['Betrag'] = df['Betrag'].astype(str)
-            # 2. Euro-Zeichen und Leerzeichen entfernen
             df['Betrag'] = df['Betrag'].str.replace('€', '', regex=False).str.replace(' ', '', regex=False)
-            # 3. Deutsche Tausenderpunkte entfernen, dann Komma zu Punkt umwandeln
             df['Betrag'] = df['Betrag'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-            # 4. In echte Float-Zahlen konvertieren
             df['Betrag'] = pd.to_numeric(df['Betrag'], errors='coerce').fillna(0.0)
     
-    # Datumsformatierung sicherstellen
     for df in [ausgaben, einnahmen]:
         if 'Datum' in df.columns:
             df['Datum'] = pd.to_datetime(df['Datum'], errors='coerce')
     
     return ausgaben, fixkosten, fix_einnahmen, einnahmen
 
-# Daten basierend auf der URL laden
-df_ausgaben, df_fixkosten, df_fix_einnahmen, df_einnahmen = load_data(SHEET_URL)
+df_ausgaben, df_fixkosten, df_fix_einnahmen, df_einnahmen = load_data(CONNECTION_NAME, SHEET_URL)
 
 # --- 3. SIDEBAR (ZEITRAUM-FILTER) ---
 if os.path.exists("Bild Dashboard.PNG"):
@@ -111,7 +104,6 @@ if selected_period == "Gesamter Zeitraum":
 elif selected_period == "Benutzerdefinierter Zeitraum":
     col_start, col_end = st.sidebar.columns(2)
     
-    # SICHERHEITSABFRAGE: Verhindert Absturz, wenn Datumsspalte leer/fehlerhaft ist
     min_datum = df_ausgaben['Datum'].min() if not df_ausgaben.empty else None
     start_datum_wert = min_datum if pd.notnull(min_datum) else datetime.today().date()
     
@@ -251,6 +243,7 @@ with tabs[4]:
             else: d['Monat_Sort'] = pd.Series(dtype='object')
         
         alle_monate_sort = sorted(list(set(df_v['Monat_Sort'].dropna().unique()) | set(df_e['Monat_Sort'].dropna().unique())))
+        
         zeitstrahl_daten = []
         for m in alle_monate_sort:
             v_m = df_v[df_v['Monat_Sort'] == m]['Betrag'].sum()
