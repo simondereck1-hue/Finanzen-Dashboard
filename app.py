@@ -226,13 +226,18 @@ with tabs[1]:
 
 # TAB 3: FIXKOSTEN
 with tabs[2]:
+    # Berechnung der monatlichen Basis-Summe und der skalierten Summe für den Zeitraum
     fix_monat_summe = df_fixkosten['Betrag'].sum() if not df_fixkosten.empty else 0
-    st.subheader(f"Fixkosten Analyse — Monatlich: {fix_monat_summe:,.2f} €")
+    fix_zeitraum_summe = fix_monat_summe * num_months
+    
+    st.subheader(f"Fixkosten Analyse — Zeitraum ({num_months} Mon.): {fix_zeitraum_summe:,.2f} €")
     col1, col2 = st.columns([1.5, 1])
     with col1:
         if not df_fixkosten.empty:
-            df_fix_fig = df_fixkosten.copy().assign(Betrag=df_fixkosten['Betrag'] * num_months)
-            fig_fix_pie = px.sunburst(df_fix_fig, path=['Kategorie', 'Unterkategorie'], values='Betrag', title="Fixkosten Verteilung (skaliert)", height=600, color_discrete_sequence=COMPLEMENTARY_COLORS)
+            # Erstellen einer Kopie für das Diagramm mit skalierten Beträgen
+            df_fix_fig = df_fixkosten.copy()
+            df_fix_fig['Betrag'] = df_fix_fig['Betrag'] * num_months
+            fig_fix_pie = px.sunburst(df_fix_fig, path=['Kategorie', 'Unterkategorie'], values='Betrag', title=f"Fixkosten Verteilung ({num_months} Mon.)", height=600, color_discrete_sequence=COMPLEMENTARY_COLORS)
             fig_fix_pie.update_traces(textinfo="label+percent entry")
             st.plotly_chart(fig_fix_pie, use_container_width=True)
     with col2:
@@ -240,7 +245,8 @@ with tabs[2]:
         if not df_fixkosten.empty:
             f_kat_fix = st.multiselect("Kategorie auswählen", options=sorted(df_fixkosten["Kategorie"].dropna().unique()), key="filter_fix_kat")
             f_sub_fix = st.multiselect("Unterkategorie auswählen", options=sorted(df_fixkosten["Unterkategorie"].dropna().unique()), key="filter_fix_sub")
-            df_fix_table = df_fixkosten.copy().assign(Betrag=df_fixkosten['Betrag'] * num_months)
+            df_fix_table = df_fixkosten.copy()
+            df_fix_table['Betrag'] = df_fix_table['Betrag'] * num_months
             if f_kat_fix: df_fix_table = df_fix_table[df_fix_table["Kategorie"].isin(f_kat_fix)]
             if f_sub_fix: df_fix_table = df_fix_table[df_fix_table["Unterkategorie"].isin(f_sub_fix)]
             st.data_editor(df_fix_table, hide_index=True, use_container_width=True, key=f"fix_f_{st.session_state.mode}")
