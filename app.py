@@ -56,21 +56,10 @@ def clean_betrag(series):
     s = s.str.replace('€', '', regex=False).str.replace(' ', '', regex=False)
     
     has_both = s.str.contains(r'\.') & s.str.contains(r',')
-    dot_before_comma = s.str.contains(r'\.\d{1,2},') | (
-        s.str.count(r'\.') == 1 & s.str.count(r',') == 1 &
-        (s.str.index('.') < s.str.index(',')) if False else
-        has_both
-    )
-    
-    # Variante A: Deutsches Format mit Tausenderpunkt: 1.234,56 → 1234.56
-    mask_de = has_both
-    # Variante B: Nur Komma als Dezimal: 1234,56 → 1234.56
-    mask_comma_only = ~has_both & s.str.contains(r',')
-    # Variante C: Bereits englisches Format oder ganze Zahl: 1234.56 oder 1234
     
     result = s.copy()
-    result[mask_de] = s[mask_de].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-    result[mask_comma_only] = s[mask_comma_only].str.replace(',', '.', regex=False)
+    result[has_both] = s[has_both].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+    result[~has_both & s.str.contains(r',')] = s[~has_both & s.str.contains(r',')].str.replace(',', '.', regex=False)
     
     return pd.to_numeric(result, errors='coerce').fillna(0.0)
 
@@ -111,10 +100,12 @@ def load_data(sheet_id):
     for df in [ausgaben, fixkosten, fix_einnahmen, einnahmen]:
         if 'Betrag' in df.columns:
             df['Betrag'] = clean_betrag(df['Betrag'])
+        else:
+            df['Betrag'] = 0.0
 
     for df in [ausgaben, einnahmen]:
         if 'Datum' in df.columns:
-            df['Datum'] = pd.to_datetime(df['Datum'], errors='coerce')
+            df['Datum'] = pd.to_datetime(df['Datum'], dayfirst=True, errors='coerce')
 
     return ausgaben, fixkosten, fix_einnahmen, einnahmen
 
@@ -126,49 +117,50 @@ if os.path.exists("Bild Dashboard.PNG"):
 
 st.sidebar.header("🔍 Globaler Filter")
 
-if not df_ausgaben.empty and df_ausgaben['Datum'].notnull().any():
-    df_ausgaben['Monat_Jahr'] = df_ausgaben['Datum'].dt.strftime('%m-%Y')
-else:
-    df_ausgaben['Monat_Jahr'] = None
+# Monat_Jahr Spalten für den Filter erstellen
+for df in [df_ausgaben, df_einnahmen]:
+    if not df.empty and 'Datum' in df.columns:
+        df['Filter_Label'] = df['Datum'].apply(datum_zu_monat)
+        df['Monat_Jahr'] = df['Datum'].dt.strftime('%m-%Y')
+    else:
+        df['Filter_Label'] = None
+        df['Monat_Jahr'] = None
 
-if not df_einnahmen.empty and df_einnahmen['Datum'].notnull().any():
-    df_einnahmen['Monat_Jahr'] = df_einnahmen['Datum'].dt.strftime('%m-%Y')
-else:
-    df_einnahmen['Monat_Jahr'] = None
+# Verfügbare Monate sammeln (Mapping von Label zu technischem Wert)
+filter_mapping = {}
+if not df_ausgaben.empty:
+    filter_mapping.update(dict(zip(df_ausgaben['Filter_Label'].dropna(), df_ausgaben['Monat_Jahr'].dropna())))
+if not df_einnahmen.empty:
+    filter_mapping.update(dict(zip(df_einnahmen['Filter_Label'].dropna(), df_einnahmen['Monat_Jahr'].dropna())))
 
-available_months = sorted(list(
-    set(df_ausgaben['Monat_Jahr'].dropna().unique() if 'Monat_Jahr' in df_ausgaben else []) |
-    set(df_einnahmen['Monat_Jahr'].dropna().unique() if 'Monat_Jahr' in df_einnahmen else [])
-))
+# Sortierung der Monate (neueste zuerst oder chronologisch)
+sorted_labels = sorted(filter_mapping.keys(), key=lambda x: datetime.strptime(filter_mapping[x], "%m-%Y"))
 
-month_options = ["Gesamter Zeitraum", "Benutzerdefinierter Zeitraum"] + available_months
-selected_period = st.sidebar.selectbox("Zeitraum wählen", month_options)
+month_options = ["Gesamter Zeitraum", "Benutzerdefinierter Zeitraum"] + sorted_labels
+selected_label = st.sidebar.selectbox("Zeitraum wählen", month_options)
 
-if selected_period == "Gesamter Zeitraum":
-    num_months = len(available_months) if available_months else 1
+if selected_label == "Gesamter Zeitraum":
+    num_months = len(sorted_labels) if sorted_labels else 1
     filtered_ausgaben = df_ausgaben.copy()
     filtered_einnahmen = df_einnahmen.copy()
-elif selected_period == "Benutzerdefinierter Zeitraum":
+elif selected_label == "Benutzerdefinierter Zeitraum":
     col_start, col_end = st.sidebar.columns(2)
-
-    min_datum = df_ausgaben['Datum'].min() if not df_ausgaben.empty else None
-    start_datum_wert = min_datum if pd.notnull(min_datum) else datetime.today().date()
-
-    start_date = col_start.date_input("Startdatum", value=start_datum_wert)
+    min_datum = df_ausgaben['Datum'].min() if not df_ausgaben.empty else datetime.today().date()
+    start_date = col_start.date_input("Startdatum", value=min_datum)
     end_date = col_end.date_input("Enddatum", value=datetime.today().date())
-
+    
     start_dt = pd.to_datetime(start_date)
     end_dt = pd.to_datetime(end_date)
-
     filtered_ausgaben = df_ausgaben[(df_ausgaben['Datum'] >= start_dt) & (df_ausgaben['Datum'] <= end_dt)].copy()
     filtered_einnahmen = df_einnahmen[(df_einnahmen['Datum'] >= start_dt) & (df_einnahmen['Datum'] <= end_dt)].copy()
-
+    
     diff = (end_date.year - start_date.year) * 12 + end_date.month - start_date.month + 1
     num_months = max(1, diff)
 else:
     num_months = 1
-    filtered_ausgaben = df_ausgaben[df_ausgaben['Monat_Jahr'] == selected_period].copy()
-    filtered_einnahmen = df_einnahmen[df_einnahmen['Monat_Jahr'] == selected_period].copy()
+    tech_val = filter_mapping[selected_label]
+    filtered_ausgaben = df_ausgaben[df_ausgaben['Monat_Jahr'] == tech_val].copy()
+    filtered_einnahmen = df_einnahmen[df_einnahmen['Monat_Jahr'] == tech_val].copy()
 
 st.sidebar.divider()
 
@@ -179,14 +171,16 @@ if st.session_state.mode in ['simon', 'alisia']:
 
 tabs = st.tabs(tab_titles)
 
-fix_summe_scaled = df_fixkosten['Betrag'].sum() * num_months
-einn_fix_summe_scaled = df_fix_einnahmen['Betrag'].sum() * num_months
+# Sicherstellung, dass Betrag-Spalten existieren für die Berechnung
+fix_summe_scaled = df_fixkosten['Betrag'].sum() * num_months if 'Betrag' in df_fixkosten.columns else 0
+einn_fix_summe_scaled = df_fix_einnahmen['Betrag'].sum() * num_months if 'Betrag' in df_fix_einnahmen.columns else 0
 
 # TAB 1: GESAMTKOSTENÜBERSICHT
 with tabs[0]:
-    df_fix_scaled = df_fixkosten.assign(Typ='Fix', Betrag=df_fixkosten['Betrag'] * num_months)
-    df_all = pd.concat([df_fix_scaled, filtered_ausgaben.assign(Typ='Variabel')])
-    gesamt_ausgaben = df_all['Betrag'].sum()
+    df_fix_scaled = df_fixkosten.assign(Typ='Fix', Betrag=df_fixkosten['Betrag'] * num_months) if not df_fixkosten.empty else pd.DataFrame()
+    df_all = pd.concat([df_fix_scaled, filtered_ausgaben.assign(Typ='Variabel')]) if not filtered_ausgaben.empty or not df_fix_scaled.empty else pd.DataFrame()
+    
+    gesamt_ausgaben = df_all['Betrag'].sum() if not df_all.empty else 0
     st.subheader(f"Übersicht & Tabellenfilter — Gesamt: {gesamt_ausgaben:,.2f} €")
 
     col_l, col_r = st.columns([1.5, 1])
@@ -211,7 +205,7 @@ with tabs[0]:
 
 # TAB 2: EINNAHMEN
 with tabs[1]:
-    aktuelle_einnahmen = filtered_einnahmen['Betrag'].sum() + einn_fix_summe_scaled
+    aktuelle_einnahmen = (filtered_einnahmen['Betrag'].sum() if not filtered_einnahmen.empty else 0) + einn_fix_summe_scaled
     st.subheader(f"Einnahmen Details — Gesamt: {aktuelle_einnahmen:,.2f} €")
     col1, col2 = st.columns([1.5, 1])
     with col2:
@@ -232,7 +226,8 @@ with tabs[1]:
 
 # TAB 3: FIXKOSTEN
 with tabs[2]:
-    st.subheader(f"Fixkosten Analyse — Monatlich: {df_fixkosten['Betrag'].sum():,.2f} €")
+    fix_monat_summe = df_fixkosten['Betrag'].sum() if not df_fixkosten.empty else 0
+    st.subheader(f"Fixkosten Analyse — Monatlich: {fix_monat_summe:,.2f} €")
     col1, col2 = st.columns([1.5, 1])
     with col1:
         if not df_fixkosten.empty:
@@ -253,7 +248,8 @@ with tabs[2]:
 
 # TAB 4: VARIABEL
 with tabs[3]:
-    st.subheader(f"Variable Ausgaben — Zeitraum: {filtered_ausgaben['Betrag'].sum():,.2f} €")
+    var_summe = filtered_ausgaben['Betrag'].sum() if not filtered_ausgaben.empty else 0
+    st.subheader(f"Variable Ausgaben — Zeitraum: {var_summe:,.2f} €")
     if not filtered_ausgaben.empty:
         col1, col2 = st.columns([1.5, 1])
         with col1:
@@ -298,7 +294,9 @@ with tabs[4]:
         for m in alle_monate_sort:
             v_m = df_v[df_v['Monat_Sort'] == m]['Betrag'].sum()
             e_m = df_e[df_e['Monat_Sort'] == m]['Betrag'].sum()
-            saldo = (e_m + df_fix_einnahmen['Betrag'].sum()) - (v_m + df_fixkosten['Betrag'].sum())
+            fix_e = df_fix_einnahmen['Betrag'].sum() if not df_fix_einnahmen.empty else 0
+            fix_v = df_fixkosten['Betrag'].sum() if not df_fixkosten.empty else 0
+            saldo = (e_m + fix_e) - (v_m + fix_v)
             y, mn = m.split('-')
             zeitstrahl_daten.append({"Monat": f"{MONATE_DE[mn]} {y}", "Saldo": saldo, "Sort": m})
 
@@ -309,11 +307,13 @@ with tabs[4]:
 
         st.divider()
         st.write("### 🌊 Cashflow-Flussdiagramm")
-        total_einn_fix = (df_fix_einnahmen.groupby('Person')['Betrag'].sum() * num_months).reset_index()
-        total_einn_var = filtered_einnahmen.groupby('Person')['Betrag'].sum().reset_index()
+        
+        total_einn_fix = (df_fix_einnahmen.groupby('Person')['Betrag'].sum() * num_months).reset_index() if not df_fix_einnahmen.empty else pd.DataFrame(columns=['Person', 'Betrag'])
+        total_einn_var = filtered_einnahmen.groupby('Person')['Betrag'].sum().reset_index() if not filtered_einnahmen.empty else pd.DataFrame(columns=['Person', 'Betrag'])
+        
         df_ausg_all = pd.concat([
-            (df_fixkosten.copy().assign(Betrag=df_fixkosten['Betrag'] * num_months)).assign(Quelle='Fixkosten'),
-            filtered_ausgaben.assign(Quelle='Variable Ausgaben')
+            (df_fixkosten.copy().assign(Betrag=df_fixkosten['Betrag'] * num_months)).assign(Quelle='Fixkosten') if not df_fixkosten.empty else pd.DataFrame(),
+            filtered_ausgaben.assign(Quelle='Variable Ausgaben') if not filtered_ausgaben.empty else pd.DataFrame()
         ])
 
         if not df_ausg_all.empty or not total_einn_fix.empty:
@@ -344,7 +344,8 @@ with tabs[4]:
                     source.append(k_i); target.append(sub_start_idx+idx); value.append(row['Betrag'])
                     color_link.append(hex_to_rgba(COMPLEMENTARY_COLORS[unique_kats.index(row['Kategorie']) % len(COMPLEMENTARY_COLORS)], 0.4))
 
-            gesamt_einn, gesamt_ausg = sum(value[:len(einn_labels)]), df_ausg_all['Betrag'].sum()
+            gesamt_einn = sum(value[:len(einn_labels)])
+            gesamt_ausg = df_ausg_all['Betrag'].sum()
             if gesamt_einn > gesamt_ausg:
                 label_list.append("Saldo / Ersparnis")
                 saldo_idx = len(label_list)-1
@@ -369,7 +370,6 @@ with tabs[5]:
                 selected_kats = [k for k in all_kats if st.checkbox(k, value=True, key=f"t_kat_{k}_{st.session_state.mode}")]
             with col_plot:
                 df_tk = df_ausgaben[df_ausgaben['Kategorie'].isin(selected_kats)].copy()
-                # FIX: NaT-Werte vor dem Anwenden der Lambda-Funktion entfernen
                 df_tk = df_tk.dropna(subset=['Datum'])
                 if not df_tk.empty:
                     df_tk['Monat_Sort'] = df_tk['Datum'].dt.strftime('%Y-%m')
@@ -394,7 +394,6 @@ with tabs[5]:
                         if st.checkbox(f"   └ {s}", key=sk): selected_subcats.append(s)
             with col_plot:
                 df_ts = df_ausgaben[df_ausgaben['Unterkategorie'].isin(selected_subcats)].copy()
-                # FIX: NaT-Werte vor dem Anwenden der Lambda-Funktion entfernen
                 df_ts = df_ts.dropna(subset=['Datum'])
                 if not df_ts.empty:
                     df_ts['Monat_Sort'] = df_ts['Datum'].dt.strftime('%Y-%m')
@@ -407,8 +406,11 @@ with tabs[5]:
 if st.session_state.mode in ['simon', 'alisia']:
     with tabs[6]:
         st.subheader("📉 Kennzahlen & Sparquote")
-        akt_einn = filtered_einnahmen['Betrag'].sum() + einn_fix_summe_scaled
-        akt_spar = (df_fixkosten[df_fixkosten['Unterkategorie'] == 'Sparen']['Betrag'].sum() * num_months) + filtered_ausgaben[filtered_ausgaben['Unterkategorie'] == 'Sparen']['Betrag'].sum()
+        akt_einn = (filtered_einnahmen['Betrag'].sum() if not filtered_einnahmen.empty else 0) + einn_fix_summe_scaled
+        
+        spar_fix = df_fixkosten[df_fixkosten['Unterkategorie'] == 'Sparen']['Betrag'].sum() * num_months if not df_fixkosten.empty else 0
+        spar_var = filtered_ausgaben[filtered_ausgaben['Unterkategorie'] == 'Sparen']['Betrag'].sum() if not filtered_ausgaben.empty else 0
+        akt_spar = spar_fix + spar_var
 
         if akt_einn > 0:
             sparquote = (akt_spar / akt_einn) * 100
@@ -430,17 +432,20 @@ if st.session_state.mode in ['simon', 'alisia']:
             for d in [df_v_all, df_e_all]:
                 if 'Datum' in d.columns:
                     d['Monat_Sort'] = d['Datum'].dt.strftime('%Y-%m')
+            
             monate = sorted(list(set(df_v_all['Monat_Sort'].dropna().unique()) | set(df_e_all['Monat_Sort'].dropna().unique())))
 
             trend_data = []
-            fix_e_m = df_fix_einnahmen['Betrag'].sum()
-            fix_s_m = df_fixkosten[df_fixkosten['Unterkategorie'] == 'Sparen']['Betrag'].sum()
+            fix_e_m = df_fix_einnahmen['Betrag'].sum() if not df_fix_einnahmen.empty else 0
+            fix_s_m = df_fixkosten[df_fixkosten['Unterkategorie'] == 'Sparen']['Betrag'].sum() if not df_fixkosten.empty else 0
+            
             for m in monate:
                 e_m = df_e_all[df_e_all['Monat_Sort'] == m]['Betrag'].sum() + fix_e_m
                 s_m = df_v_all[(df_v_all['Monat_Sort'] == m) & (df_v_all['Unterkategorie'] == 'Sparen')]['Betrag'].sum() + fix_s_m
                 quote = (s_m / e_m * 100) if e_m > 0 else 0
                 y, mn = m.split('-')
                 trend_data.append({"Monat": f"{MONATE_DE[mn]} {y}", "Sparquote": quote, "Sort": m})
+            
             if trend_data:
                 df_trend = pd.DataFrame(trend_data).sort_values("Sort")
                 fig_trend = px.line(df_trend, x='Monat', y='Sparquote', markers=True, title="Sparquote im Zeitverlauf (%)")
