@@ -1035,110 +1035,450 @@ with tabs[tab_idx("📈 Trends")]:
 # TAB 7 – 📐 KENNZAHLEN (Simon & Alisia IDENTISCH)
 # ──────────────────────────────────────────────────────────────────────
 with tabs[tab_idx("📐 Kennzahlen")]:
-    st.subheader("📐 Kennzahlen & Sparquote")
 
-    akt_einn = gesamt_einnahmen
+    # Sub-Tabs: Kennzahlen + Spar-Modul (nur für Simon sinnvoll, aber für alle verfügbar)
+    kenn_subtabs = st.tabs(["📐 Kennzahlen & Sparquote", "💰 Spar-Planung"])
 
-    if akt_einn > 0:
-        # KPI-Reihe
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Gesamteinnahmen", fmt_eur(akt_einn))
-        m2.metric("Gesamtausgaben",  fmt_eur(gesamt_ausgaben))
-        m3.metric("Sparbetrag",      fmt_eur(gesamt_spar))
-        m4.metric("Sparquote",       f"{sparquote:.1f} %")
+    # ── SUB-TAB 1: KENNZAHLEN (unveränderter Original-Code) ─────────────
+    with kenn_subtabs[0]:
+        st.subheader("📐 Kennzahlen & Sparquote")
 
-        # Sparquoten-Gauge
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=sparquote,
-            delta={"reference": 20, "suffix": " pp zum 20%-Ziel"},
-            title={"text": "Aktuelle Sparquote (%)"},
-            gauge={
-                "axis": {"range": [0, 60]},
-                "bar": {"color": COLOR_ACCENT},
-                "steps": [
-                    {"range": [0, 10],  "color": "#dc3545"},
-                    {"range": [10, 20], "color": "#ffc107"},
-                    {"range": [20, 60], "color": "#28a745"},
-                ],
-                "threshold": {
-                    "line": {"color": "#003f5c", "width": 4},
-                    "thickness": 0.75, "value": 20,
+        akt_einn = gesamt_einnahmen
+
+        if akt_einn > 0:
+            # KPI-Reihe
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Gesamteinnahmen", fmt_eur(akt_einn))
+            m2.metric("Gesamtausgaben",  fmt_eur(gesamt_ausgaben))
+            m3.metric("Sparbetrag",      fmt_eur(gesamt_spar))
+            m4.metric("Sparquote",       f"{sparquote:.1f} %")
+
+            # Sparquoten-Gauge
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=sparquote,
+                delta={"reference": 20, "suffix": " pp zum 20%-Ziel"},
+                title={"text": "Aktuelle Sparquote (%)"},
+                gauge={
+                    "axis": {"range": [0, 60]},
+                    "bar": {"color": COLOR_ACCENT},
+                    "steps": [
+                        {"range": [0, 10],  "color": "#dc3545"},
+                        {"range": [10, 20], "color": "#ffc107"},
+                        {"range": [20, 60], "color": "#28a745"},
+                    ],
+                    "threshold": {
+                        "line": {"color": "#003f5c", "width": 4},
+                        "thickness": 0.75, "value": 20,
+                    },
                 },
-            },
-        ))
-        st.plotly_chart(fig_gauge, use_container_width=True)
+            ))
+            st.plotly_chart(fig_gauge, use_container_width=True)
 
-        # Burn-Rate Erklärung
-        st.divider()
-        bc1, bc2 = st.columns(2)
-        with bc1:
-            st.metric(
-                "🔥 Burn-Rate (Monate)",
-                f"{burn_rate_monate:.1f}",
-                help="Wie viele Monate reichen die Ersparnisse im Zeitraum, falls Einnahmen wegfallen?",
+            # Burn-Rate Erklärung
+            st.divider()
+            bc1, bc2 = st.columns(2)
+            with bc1:
+                st.metric(
+                    "🔥 Burn-Rate (Monate)",
+                    f"{burn_rate_monate:.1f}",
+                    help="Wie viele Monate reichen die Ersparnisse im Zeitraum, falls Einnahmen wegfallen?",
+                )
+                if burn_rate_monate < 3:
+                    st.error("⚠️ Notgroschen zu gering – Ziel: ≥ 3 Monate Ausgaben als Reserve.")
+                elif burn_rate_monate < 6:
+                    st.warning("📊 Solide – Empfehlung: 6 Monate anstreben.")
+                else:
+                    st.success("✅ Exzellent – Notgroschen über 6 Monate.")
+            with bc2:
+                monatl_ausgaben_calc = gesamt_ausgaben / num_months if num_months > 0 else 0
+                st.metric("⚡ Monatl. Ausgaben (Ø)", fmt_eur(monatl_ausgaben_calc))
+                st.metric("🐖 Monatl. Sparbetrag (Ø)", fmt_eur(gesamt_spar / num_months if num_months > 0 else 0))
+
+            # Sparquote Zeitverlauf
+            st.divider()
+            st.write("### 📈 Entwicklung der Sparquote")
+            df_v_all = df_ausgaben.copy()
+            df_e_all = df_einnahmen.copy()
+
+            # "Sort"-Spalte nur anlegen wenn Datum-Spalte vorhanden UND nicht leer
+            for d in [df_v_all, df_e_all]:
+                if "Datum" in d.columns and not d.empty and d["Datum"].notnull().any():
+                    d["Sort"] = d["Datum"].dt.strftime("%Y-%m")
+                else:
+                    d["Sort"] = pd.Series(dtype="object")
+
+            # Monate sicher sammeln – "Sort" existiert jetzt immer
+            monate_kenn = sorted(
+                set(df_v_all["Sort"].dropna().unique()) |
+                set(df_e_all["Sort"].dropna().unique())
             )
-            if burn_rate_monate < 3:
-                st.error("⚠️ Notgroschen zu gering – Ziel: ≥ 3 Monate Ausgaben als Reserve.")
-            elif burn_rate_monate < 6:
-                st.warning("📊 Solide – Empfehlung: 6 Monate anstreben.")
-            else:
-                st.success("✅ Exzellent – Notgroschen über 6 Monate.")
-        with bc2:
-            monatl_ausgaben_calc = gesamt_ausgaben / num_months if num_months > 0 else 0
-            st.metric("⚡ Monatl. Ausgaben (Ø)", fmt_eur(monatl_ausgaben_calc))
-            st.metric("🐖 Monatl. Sparbetrag (Ø)", fmt_eur(gesamt_spar / num_months if num_months > 0 else 0))
+            trend_data = []
+            for m in monate_kenn:
+                e_m = df_e_all[df_e_all["Sort"] == m]["Betrag"].sum() + einn_fix_monat
+                spar_fix_m = (
+                    df_fixkosten[df_fixkosten["Unterkategorie"] == "Sparen"]["Betrag"].sum()
+                    if not df_fixkosten.empty else 0
+                )
+                spar_var_m = (
+                    df_v_all[
+                        (df_v_all["Sort"] == m) & (df_v_all["Unterkategorie"] == "Sparen")
+                    ]["Betrag"].sum()
+                )
+                s_m = spar_fix_m + spar_var_m
+                q   = (s_m / e_m * 100) if e_m > 0 else 0
+                y, mn = m.split("-")
+                trend_data.append({"Monat": f"{MONATE_DE[mn]} {y}", "Sparquote": q, "Sort": m})
 
-        # Sparquote Zeitverlauf
-        st.divider()
-        st.write("### 📈 Entwicklung der Sparquote")
-        df_v_all = df_ausgaben.copy()
-        df_e_all = df_einnahmen.copy()
+            if trend_data:
+                df_trend = pd.DataFrame(trend_data).sort_values("Sort")
+                fig_t = px.area(
+                    df_trend, x="Monat", y="Sparquote", markers=True,
+                    title="Sparquote im Zeitverlauf (%)",
+                    color_discrete_sequence=[COLOR_ACCENT],
+                )
+                fig_t.add_hline(
+                    y=20, line_dash="dash", line_color=COLOR_WARN,
+                    annotation_text="Ziel: 20 %", annotation_position="top right",
+                )
+                fig_t.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_t, use_container_width=True)
+        else:
+            st.warning("Keine Einnahmen gefunden.")
 
-        # "Sort"-Spalte nur anlegen wenn Datum-Spalte vorhanden UND nicht leer
-        for d in [df_v_all, df_e_all]:
-            if "Datum" in d.columns and not d.empty and d["Datum"].notnull().any():
-                d["Sort"] = d["Datum"].dt.strftime("%Y-%m")
-            else:
-                d["Sort"] = pd.Series(dtype="object")
+    # ── SUB-TAB 2: SPAR-PLANUNG (NEU) ────────────────────────────────────
+    with kenn_subtabs[1]:
+        st.subheader("💰 Spar-Planung & Portfolio-Allokation")
 
-        # Monate sicher sammeln – "Sort" existiert jetzt immer
-        monate_kenn = sorted(
-            set(df_v_all["Sort"].dropna().unique()) |
-            set(df_e_all["Sort"].dropna().unique())
+        # ── Basis: monatlicher Sparbetrag aus Fixkosten ───────────────────
+        spar_basis_monat = (
+            df_fixkosten[df_fixkosten["Unterkategorie"] == "Sparen"]["Betrag"].sum()
+            if not df_fixkosten.empty else 0.0
         )
-        trend_data = []
-        for m in monate_kenn:
-            e_m = df_e_all[df_e_all["Sort"] == m]["Betrag"].sum() + einn_fix_monat
-            spar_fix_m = (
-                df_fixkosten[df_fixkosten["Unterkategorie"] == "Sparen"]["Betrag"].sum()
-                if not df_fixkosten.empty else 0
-            )
-            spar_var_m = (
-                df_v_all[
-                    (df_v_all["Sort"] == m) & (df_v_all["Unterkategorie"] == "Sparen")
-                ]["Betrag"].sum()
-            )
-            s_m = spar_fix_m + spar_var_m
-            q   = (s_m / e_m * 100) if e_m > 0 else 0
-            y, mn = m.split("-")
-            trend_data.append({"Monat": f"{MONATE_DE[mn]} {y}", "Sparquote": q, "Sort": m})
 
-        if trend_data:
-            df_trend = pd.DataFrame(trend_data).sort_values("Sort")
-            fig_t = px.area(
-                df_trend, x="Monat", y="Sparquote", markers=True,
-                title="Sparquote im Zeitverlauf (%)",
-                color_discrete_sequence=[COLOR_ACCENT],
+        if spar_basis_monat <= 0:
+            st.warning("⚠️ Kein 'Sparen'-Eintrag in den Fixkosten gefunden. Bitte prüfe die Google-Tabelle.")
+        else:
+            st.info(
+                f"📌 Basis: **{fmt_eur(spar_basis_monat)}/Monat** aus dem Fixkosten-Block (Kategorie 'Sparen'). "
+                "Dieser Betrag ist die 100 %-Basis aller Berechnungen."
             )
-            fig_t.add_hline(
-                y=20, line_dash="dash", line_color=COLOR_WARN,
-                annotation_text="Ziel: 20 %", annotation_position="top right",
-            )
-            fig_t.update_layout(plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_t, use_container_width=True)
-    else:
-        st.warning("Keine Einnahmen gefunden.")
+
+            # ── Konstanten ────────────────────────────────────────────────
+            PAV_FIX        = 150.0   # € / Monat, Priorität 1 – fix
+            PAV_ZUSCHUSS   = 45.0    # € / Monat staatlicher Zuschuss
+            MAX_TILGUNG    = 1083.0  # € / Monat (13.000 € / Jahr)
+            MONATE_IM_JAHR = 12
+
+            # Budget nach pAV
+            budget_nach_pav = max(0.0, spar_basis_monat - PAV_FIX)
+
+            # ── Slider – Sondertilgung ────────────────────────────────────
+            st.markdown("---")
+            st.write("### ⚙️ Interaktive Verteilung")
+            sl1, sl2 = st.columns(2)
+
+            max_tilgung_slider = min(MAX_TILGUNG, budget_nach_pav)
+            with sl1:
+                tilgung = st.slider(
+                    "🏦 Sondertilgung Kredit (€/Monat)",
+                    min_value=0,
+                    max_value=int(max_tilgung_slider),
+                    value=min(500, int(max_tilgung_slider)),
+                    step=50,
+                    key="slider_tilgung",
+                    help=f"Max. {fmt_eur(MAX_TILGUNG)}/Monat = 13.000 €/Jahr Limit",
+                )
+
+            # Budget nach pAV + Tilgung
+            budget_nach_tilgung = max(0.0, budget_nach_pav - tilgung)
+
+            with sl2:
+                urlaub = st.slider(
+                    "🌴 Privat / Urlaub (€/Monat)",
+                    min_value=0,
+                    max_value=int(budget_nach_tilgung),
+                    value=min(200, int(budget_nach_tilgung)),
+                    step=25,
+                    key="slider_urlaub",
+                    help="Restbudget nach pAV und Sondertilgung",
+                )
+
+            # ── Berechnungen ──────────────────────────────────────────────
+            investition   = max(0.0, spar_basis_monat - PAV_FIX - tilgung - urlaub)
+            summe_check   = PAV_FIX + tilgung + urlaub + investition
+
+            # Plausibilitätsprüfung
+            if summe_check > spar_basis_monat + 0.01:
+                st.error(f"⚠️ Rechenkonflikt: Summe ({fmt_eur(summe_check)}) > Basis ({fmt_eur(spar_basis_monat)}). Slider zurücksetzen.")
+                investition = 0.0
+
+            # ── Portfolio-Aufteilung ──────────────────────────────────────
+            # Core 85%: MSCI World 60%, Europa 15%, EM 10%
+            # Satellite 15%: Semiconductor 10%, Zockergeld 5%
+            core_total   = investition * 0.85
+            sat_total    = investition * 0.15
+
+            msci_world   = core_total * (60 / 85)
+            europa       = core_total * (15 / 85)
+            em           = core_total * (10 / 85)
+
+            semiconductor = sat_total * (10 / 15)
+            zockergeld    = sat_total * (5  / 15)
+
+            # ── Session State für Zockergeld-Akkumulator ─────────────────
+            if "zocker_akkum" not in st.session_state:
+                st.session_state.zocker_akkum = 0.0
+
+            # ── LAYOUT: Wasserfall + pAV-Kachel ──────────────────────────
+            st.markdown("---")
+            st.write("### 📊 Übersicht")
+
+            col_wf, col_pav = st.columns([2, 1])
+
+            with col_wf:
+                # Wasserfall-Chart
+                wf_measure = ["absolute", "relative", "relative", "relative", "total"]
+                wf_x       = ["Sparbetrag", "− pAV", "− Sondertilgung", "− Privat/Urlaub", "→ Investment"]
+                wf_y       = [spar_basis_monat, -PAV_FIX, -float(tilgung), -float(urlaub), investition]
+                wf_text    = [fmt_eur(v) for v in wf_y]
+                wf_colors  = [
+                    COLOR_ACCENT,
+                    COLOR_NEGATIVE,
+                    COLOR_WARN,
+                    "#a05195",
+                    COLOR_POSITIVE,
+                ]
+
+                fig_wf = go.Figure(go.Waterfall(
+                    measure=wf_measure,
+                    x=wf_x,
+                    y=wf_y,
+                    text=wf_text,
+                    textposition="outside",
+                    connector={"line": {"color": COLOR_NEUTRAL}},
+                    increasing={"marker": {"color": COLOR_POSITIVE}},
+                    decreasing={"marker": {"color": COLOR_NEGATIVE}},
+                    totals={"marker": {"color": COLOR_ACCENT}},
+                ))
+                fig_wf.update_layout(
+                    title="Spar-Wasserfall: Monatliche Verteilung",
+                    yaxis_title="€",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_wf, use_container_width=True)
+
+            with col_pav:
+                # pAV-Kachel
+                st.write("#### 🛡️ Private Altersvorsorge")
+                # Gesamtkapital = Summe aller Monate mit pAV-Einzahlung
+                # Proxy: Anzahl verfügbarer Monate aus den Daten × pAV-Fix-Betrag
+                anzahl_monate_daten = max(1, len(
+                    set(df_ausgaben["Monat_Jahr"].dropna().unique())
+                    if not df_ausgaben.empty and "Monat_Jahr" in df_ausgaben.columns
+                    else []
+                ))
+                pav_kapital_gesamt = PAV_FIX * anzahl_monate_daten
+                pav_zuschuss_gesamt = PAV_ZUSCHUSS * anzahl_monate_daten
+
+                st.metric(
+                    "💼 Eigenes Kapital (kumuliert)",
+                    fmt_eur(pav_kapital_gesamt),
+                    help=f"Basiert auf {anzahl_monate_daten} Datenmonaten × {fmt_eur(PAV_FIX)}/Monat",
+                )
+                st.metric(
+                    "🎁 Staatl. Zuschuss (kumuliert)",
+                    fmt_eur(pav_zuschuss_gesamt),
+                    help=f"{fmt_eur(PAV_ZUSCHUSS)}/Monat × {anzahl_monate_daten} Monate",
+                )
+                st.metric(
+                    "💰 Gesamtkapital (inkl. Zuschuss)",
+                    fmt_eur(pav_kapital_gesamt + pav_zuschuss_gesamt),
+                )
+                st.info(f"📅 Monatlich: **{fmt_eur(PAV_FIX)}** eigen + **{fmt_eur(PAV_ZUSCHUSS)}** Zuschuss = **{fmt_eur(PAV_FIX + PAV_ZUSCHUSS)}** gesamt")
+
+            # ── Tilgungs-Gauge + Portfolio-Chart ─────────────────────────
+            st.markdown("---")
+            col_gauge, col_port = st.columns(2)
+
+            with col_gauge:
+                st.write("#### 🏦 Sondertilgung – Jahresfortschritt")
+                tilgung_jahresbetrag = tilgung * MONATE_IM_JAHR
+                # Ermittle aktuellen Monat für "verbleibende Monate bis Jahresende"
+                monat_aktuell = datetime.now().month
+                monate_verbleibend = max(1, MONATE_IM_JAHR - monat_aktuell + 1)
+                tilgung_hochrechnung = tilgung * monate_verbleibend
+                tilgung_prozent = min(100.0, tilgung_hochrechnung / 13000.0 * 100)
+
+                fig_tg = go.Figure(go.Indicator(
+                    mode="gauge+number+delta",
+                    value=tilgung_hochrechnung,
+                    number={"suffix": " €", "valueformat": ",.0f"},
+                    delta={
+                        "reference": 13000,
+                        "valueformat": ",.0f",
+                        "suffix": " € zum Limit",
+                    },
+                    title={"text": f"Hochrechnung bis Jahresende<br><sup>{monate_verbleibend} Monate × {fmt_eur(tilgung)}</sup>"},
+                    gauge={
+                        "axis": {"range": [0, 13000]},
+                        "bar": {"color": COLOR_ACCENT},
+                        "steps": [
+                            {"range": [0, 5000],  "color": "#e8f4f8"},
+                            {"range": [5000, 10000], "color": "#b8ddf0"},
+                            {"range": [10000, 13000], "color": "#28a745"},
+                        ],
+                        "threshold": {
+                            "line": {"color": COLOR_NEGATIVE, "width": 4},
+                            "thickness": 0.75,
+                            "value": 13000,
+                        },
+                    },
+                ))
+                fig_tg.update_layout(
+                    height=350,
+                    paper_bgcolor="rgba(0,0,0,0)",
+                )
+                st.plotly_chart(fig_tg, use_container_width=True)
+                st.caption(
+                    f"Jahresbetrag bei gleichbleibender Rate: **{fmt_eur(tilgung_jahresbetrag)}** "
+                    f"| Limit: **13.000,00 €** | Ausnutzung: **{tilgung_prozent:.1f} %**"
+                )
+
+            with col_port:
+                st.write("#### 📈 Portfolio-Allokation")
+                if investition > 0:
+                    # Sunburst: Core/Satellite → Unterkategorien
+                    port_labels  = ["Investment", "Core (85%)", "Satellite (15%)",
+                                    "MSCI World", "Europa", "EM",
+                                    "Semiconductor", "Zockergeld"]
+                    port_parents = ["", "Investment", "Investment",
+                                    "Core (85%)", "Core (85%)", "Core (85%)",
+                                    "Satellite (15%)", "Satellite (15%)"]
+                    port_values  = [investition, core_total, sat_total,
+                                    msci_world, europa, em,
+                                    semiconductor, zockergeld]
+                    port_text    = [
+                        fmt_eur(investition),
+                        fmt_eur(core_total),
+                        fmt_eur(sat_total),
+                        fmt_eur(msci_world),
+                        fmt_eur(europa),
+                        fmt_eur(em),
+                        fmt_eur(semiconductor),
+                        fmt_eur(zockergeld),
+                    ]
+
+                    fig_sun = go.Figure(go.Sunburst(
+                        labels=port_labels,
+                        parents=port_parents,
+                        values=port_values,
+                        customdata=port_text,
+                        hovertemplate="<b>%{label}</b><br>%{customdata}<extra></extra>",
+                        texttemplate="%{label}<br>%{customdata}",
+                        branchvalues="total",
+                        marker=dict(colors=[
+                            COLOR_ACCENT, COMPLEMENTARY_COLORS[1], COMPLEMENTARY_COLORS[4],
+                            COMPLEMENTARY_COLORS[0], COMPLEMENTARY_COLORS[2], COMPLEMENTARY_COLORS[3],
+                            COMPLEMENTARY_COLORS[5], COMPLEMENTARY_COLORS[6],
+                        ]),
+                    ))
+                    fig_sun.update_layout(
+                        height=350,
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        margin=dict(t=10, b=10, l=10, r=10),
+                    )
+                    st.plotly_chart(fig_sun, use_container_width=True)
+                else:
+                    st.info("💡 Kein Restbetrag für Investment — Slider anpassen.")
+
+            # ── Portfolio-Detailtabelle ───────────────────────────────────
+            st.markdown("---")
+            st.write("### 📋 Portfolio-Detailübersicht")
+
+            port_detail_cols = st.columns(5)
+            port_items = [
+                ("🌍 MSCI World", msci_world,    "Core · 60 %"),
+                ("🇪🇺 Europa",     europa,         "Core · 15 %"),
+                ("🌏 EM",          em,             "Core · 10 %"),
+                ("💻 Semiconductor", semiconductor, "Satellite · 10 %"),
+                ("🎲 Zockergeld",  zockergeld,     "Satellite · 5 %"),
+            ]
+            for col, (label, betrag, info) in zip(port_detail_cols, port_items):
+                col.metric(label, fmt_eur(betrag), info)
+
+            # ── Zockergeld-Akkumulator ────────────────────────────────────
+            st.markdown("---")
+            st.write("### 🎲 Zockergeld-Kasse")
+            zk1, zk2, zk3 = st.columns([1, 1, 1])
+
+            with zk1:
+                st.metric(
+                    "💶 Aktueller Monatsbetrag",
+                    fmt_eur(zockergeld),
+                )
+            with zk2:
+                st.metric(
+                    "🏦 Akkumuliert (noch nicht investiert)",
+                    fmt_eur(st.session_state.zocker_akkum + zockergeld),
+                )
+            with zk3:
+                st.write("")
+                st.write("")
+                if st.button("✅ Investiert! Kasse zurücksetzen", key="btn_zocker_reset", use_container_width=True):
+                    st.session_state.zocker_akkum = 0.0
+                    st.success("Zockergeld-Kasse wurde zurückgesetzt.")
+                if st.button("➕ Monat hinzufügen", key="btn_zocker_add", use_container_width=True):
+                    st.session_state.zocker_akkum += zockergeld
+                    st.success(f"+ {fmt_eur(zockergeld)} zur Zockerkasse hinzugefügt.")
+
+            # ── Zusammenfassungs-Tabelle ──────────────────────────────────
+            st.markdown("---")
+            st.write("### 🧾 Monatsübersicht")
+            summary_data = {
+                "Posten": [
+                    "🐖 Sparbetrag (Basis)",
+                    "🛡️ Private Altersvorsorge (fix)",
+                    "🏦 Sondertilgung Kredit",
+                    "🌴 Privat / Urlaub",
+                    "📈 Investment (Restbetrag)",
+                    "─────────────────────",
+                    "   🌍 MSCI World (Core 60%)",
+                    "   🇪🇺 Europa (Core 15%)",
+                    "   🌏 EM (Core 10%)",
+                    "   💻 Semiconductor (Sat. 10%)",
+                    "   🎲 Zockergeld (Sat. 5%)",
+                ],
+                "Betrag": [
+                    fmt_eur(spar_basis_monat),
+                    fmt_eur(PAV_FIX),
+                    fmt_eur(tilgung),
+                    fmt_eur(urlaub),
+                    fmt_eur(investition),
+                    "────────",
+                    fmt_eur(msci_world),
+                    fmt_eur(europa),
+                    fmt_eur(em),
+                    fmt_eur(semiconductor),
+                    fmt_eur(zockergeld),
+                ],
+                "Anteil": [
+                    "100,0 %",
+                    f"{PAV_FIX / spar_basis_monat * 100:.1f} %",
+                    f"{tilgung / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{urlaub / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{investition / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    "────",
+                    f"{msci_world / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{europa / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{em / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{semiconductor / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                    f"{zockergeld / spar_basis_monat * 100:.1f} %" if spar_basis_monat > 0 else "–",
+                ],
+            }
+            st.dataframe(pd.DataFrame(summary_data), hide_index=True, use_container_width=True)
 
 
 # ──────────────────────────────────────────────────────────────────────
