@@ -39,16 +39,589 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Design-System ─────────────────────────────────────────────────────
+# ── Design-System (High-End Private Banking) ──────────────────────────
 COMPLEMENTARY_COLORS = [
-    "#003f5c", "#ff7c43", "#2f4b7c", "#ffa600",
-    "#665191", "#f95d6a", "#a05195", "#d45087",
+    "#1a3a5c", "#c9a84c", "#2e5984", "#e8c56a",
+    "#4a7ba7", "#8b6914", "#6b9ec4", "#a07820",
 ]
-COLOR_POSITIVE  = "#28a745"
-COLOR_NEGATIVE  = "#dc3545"
-COLOR_NEUTRAL   = "#6c757d"
-COLOR_ACCENT    = "#003f5c"
-COLOR_WARN      = "#ff7c43"
+COLOR_POSITIVE  = "#2d7a4f"
+COLOR_NEGATIVE  = "#8b2635"
+COLOR_NEUTRAL   = "#5a6475"
+COLOR_ACCENT    = "#1a3a5c"
+COLOR_WARN      = "#c9a84c"
+
+# ── High-End Private Banking CSS Injection ────────────────────────────
+_PRIVATE_BANK_CSS = """
+<style>
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY — Cormorant Garamond + DM Mono
+═══════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:ital,wght@0,200;0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap');
+
+/* ═══════════════════════════════════════════════════
+   CSS VARIABLES — Privatbank Colour Palette
+═══════════════════════════════════════════════════ */
+:root {
+  --pb-navy:        #0d1f35;
+  --pb-navy-mid:    #132944;
+  --pb-navy-light:  #1a3a5c;
+  --pb-navy-muted:  #243e5a;
+  --pb-gold:        #c9a84c;
+  --pb-gold-light:  #e8c56a;
+  --pb-gold-dim:    #8b6914;
+  --pb-cream:       #f5f0e8;
+  --pb-cream-dark:  #ede6d6;
+  --pb-slate:       #4a5568;
+  --pb-slate-light: #718096;
+  --pb-green:       #2d7a4f;
+  --pb-red:         #8b2635;
+  --pb-white:       #fafaf8;
+  --pb-border:      rgba(201, 168, 76, 0.25);
+  --pb-border-soft: rgba(201, 168, 76, 0.12);
+  --pb-shadow:      0 4px 24px rgba(13, 31, 53, 0.18), 0 1px 4px rgba(13, 31, 53, 0.10);
+  --pb-shadow-sm:   0 2px 12px rgba(13, 31, 53, 0.12);
+  --pb-radius:      6px;
+  --pb-radius-lg:   10px;
+}
+
+/* ═══════════════════════════════════════════════════
+   GLOBAL — Base Reset & Typography
+═══════════════════════════════════════════════════ */
+html, body, [class*="css"] {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+
+.stApp {
+  background: linear-gradient(160deg, #0d1822 0%, #0f1f33 40%, #0d1a2e 100%) !important;
+  min-height: 100vh;
+}
+
+/* Main content area */
+.main .block-container {
+  padding: 2rem 2.5rem 3rem 2.5rem !important;
+  max-width: 1400px !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR — Matrix-Helix with SVG Background
+═══════════════════════════════════════════════════ */
+[data-testid="stSidebar"] {
+  background: linear-gradient(175deg, #07121e 0%, #0d1f35 35%, #0a1a2e 70%, #081320 100%) !important;
+  border-right: 1px solid var(--pb-border) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Matrix-Helix SVG Pattern via pseudo-element simulation via background-image */
+[data-testid="stSidebar"]::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='900' viewBox='0 0 280 900'%3E%3Cdefs%3E%3Cstyle%3E.helix%7Bfill:none;stroke-width:0.8%7D%3C/style%3E%3C/defs%3E%3Cg opacity='0.07'%3E%3Cpath class='helix' stroke='%23c9a84c' d='M40,0 Q140,45 240,90 Q140,135 40,180 Q140,225 240,270 Q140,315 40,360 Q140,405 240,450 Q140,495 40,540 Q140,585 240,630 Q140,675 40,720 Q140,765 240,810 Q140,855 40,900'/%3E%3Cpath class='helix' stroke='%234a7ba7' d='M240,0 Q140,45 40,90 Q140,135 240,180 Q140,225 40,270 Q140,315 240,360 Q140,405 40,450 Q140,495 240,540 Q140,585 40,630 Q140,675 240,720 Q140,765 40,810 Q140,855 240,900'/%3E%3C/g%3E%3Cg opacity='0.05'%3E%3Cpath class='helix' stroke='%23c9a84c' stroke-width='0.4' d='M70,0 Q140,30 210,60 Q140,90 70,120 Q140,150 210,180 Q140,210 70,240 Q140,270 210,300 Q140,330 70,360 Q140,390 210,420 Q140,450 70,480 Q140,510 210,540 Q140,570 70,600 Q140,630 210,660 Q140,690 70,720 Q140,750 210,780 Q140,810 70,840 Q140,870 210,900'/%3E%3Cpath class='helix' stroke='%234a7ba7' stroke-width='0.4' d='M210,0 Q140,30 70,60 Q140,90 210,120 Q140,150 70,180 Q140,210 210,240 Q140,270 70,300 Q140,330 210,360 Q140,390 70,420 Q140,450 210,480 Q140,510 70,540 Q140,570 210,600 Q140,630 70,660 Q140,690 210,720 Q140,750 70,780 Q140,810 210,840 Q140,870 70,900'/%3E%3C/g%3E%3Cg opacity='0.04'%3E%3Ccircle cx='140' cy='90' r='2' fill='%23c9a84c'/%3E%3Ccircle cx='140' cy='180' r='1.5' fill='%23c9a84c'/%3E%3Ccircle cx='140' cy='270' r='2' fill='%234a7ba7'/%3E%3Ccircle cx='140' cy='360' r='1.5' fill='%23c9a84c'/%3E%3Ccircle cx='140' cy='450' r='2' fill='%234a7ba7'/%3E%3Ccircle cx='140' cy='540' r='1.5' fill='%23c9a84c'/%3E%3Ccircle cx='140' cy='630' r='2' fill='%23c9a84c'/%3E%3Ccircle cx='140' cy='720' r='1.5' fill='%234a7ba7'/%3E%3Ccircle cx='140' cy='810' r='2' fill='%23c9a84c'/%3E%3Ccircle cx='40' cy='90' r='1.2' fill='%23c9a84c' opacity='0.6'/%3E%3Ccircle cx='240' cy='90' r='1.2' fill='%234a7ba7' opacity='0.6'/%3E%3Ccircle cx='40' cy='270' r='1.2' fill='%234a7ba7' opacity='0.6'/%3E%3Ccircle cx='240' cy='270' r='1.2' fill='%23c9a84c' opacity='0.6'/%3E%3Ccircle cx='40' cy='450' r='1.2' fill='%23c9a84c' opacity='0.6'/%3E%3Ccircle cx='240' cy='450' r='1.2' fill='%234a7ba7' opacity='0.6'/%3E%3Ccircle cx='40' cy='630' r='1.2' fill='%234a7ba7' opacity='0.6'/%3E%3Ccircle cx='240' cy='630' r='1.2' fill='%23c9a84c' opacity='0.6'/%3E%3Ccircle cx='40' cy='810' r='1.2' fill='%23c9a84c' opacity='0.6'/%3E%3C/g%3E%3Cg opacity='0.03' stroke='%23c9a84c' stroke-width='0.3' fill='none'%3E%3Cline x1='40' y1='90' x2='240' y2='90'/%3E%3Cline x1='40' y1='180' x2='240' y2='180'/%3E%3Cline x1='40' y1='270' x2='240' y2='270'/%3E%3Cline x1='40' y1='360' x2='240' y2='360'/%3E%3Cline x1='40' y1='450' x2='240' y2='450'/%3E%3Cline x1='40' y1='540' x2='240' y2='540'/%3E%3Cline x1='40' y1='630' x2='240' y2='630'/%3E%3Cline x1='40' y1='720' x2='240' y2='720'/%3E%3Cline x1='40' y1='810' x2='240' y2='810'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-y;
+  background-size: 280px auto;
+  opacity: 1;
+}
+
+[data-testid="stSidebar"] > div {
+  position: relative;
+  z-index: 1;
+}
+
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+  color: var(--pb-cream) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.04em !important;
+}
+
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  font-size: 1.1rem !important;
+  color: var(--pb-gold-light) !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--pb-border) !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 0.8rem !important;
+}
+
+/* Sidebar divider */
+[data-testid="stSidebar"] hr {
+  border-color: var(--pb-border) !important;
+  margin: 1rem 0 !important;
+}
+
+/* Sidebar info/success boxes */
+[data-testid="stSidebar"] .stAlert {
+  background: rgba(201, 168, 76, 0.08) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius) !important;
+  color: var(--pb-cream) !important;
+}
+
+/* Sidebar caption */
+[data-testid="stSidebar"] .stCaption {
+  color: var(--pb-slate-light) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+/* Sidebar selectbox */
+[data-testid="stSidebar"] .stSelectbox > div > div {
+  background: rgba(26, 58, 92, 0.6) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius) !important;
+  color: var(--pb-cream) !important;
+  font-weight: 300 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR BUTTONS — Dashboard Navigation
+═══════════════════════════════════════════════════ */
+[data-testid="stSidebar"] .stButton > button {
+  background: linear-gradient(135deg, rgba(26, 58, 92, 0.7) 0%, rgba(13, 31, 53, 0.8) 100%) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius) !important;
+  color: var(--pb-cream) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 300 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 0.55rem 1rem !important;
+  transition: all 0.25s ease !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.2) 0%, rgba(26, 58, 92, 0.9) 100%) !important;
+  border-color: var(--pb-gold) !important;
+  color: var(--pb-gold-light) !important;
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.15) !important;
+  transform: translateX(2px) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN TITLE
+═══════════════════════════════════════════════════ */
+h1 {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  font-size: 2.4rem !important;
+  color: var(--pb-cream) !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.2 !important;
+}
+
+h1::after {
+  content: "";
+  display: block;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--pb-gold), transparent);
+  margin-top: 0.5rem;
+}
+
+h2, h3 {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  color: var(--pb-cream) !important;
+  letter-spacing: 0.03em !important;
+}
+
+h4, h5, h6 {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 400 !important;
+  color: var(--pb-cream-dark) !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  font-size: 0.78rem !important;
+}
+
+p, li, label {
+  color: rgba(245, 240, 232, 0.82) !important;
+  font-weight: 300 !important;
+  line-height: 1.7 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   KPI METRIC CARDS
+═══════════════════════════════════════════════════ */
+[data-testid="stMetric"] {
+  background: linear-gradient(145deg, rgba(26, 58, 92, 0.55) 0%, rgba(13, 31, 53, 0.70) 100%) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius-lg) !important;
+  padding: 1.2rem 1.4rem !important;
+  box-shadow: var(--pb-shadow-sm) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+[data-testid="stMetric"]::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(180deg, var(--pb-gold), transparent);
+  border-radius: 3px 0 0 3px;
+}
+
+[data-testid="stMetric"]:hover {
+  border-color: rgba(201, 168, 76, 0.4) !important;
+  box-shadow: var(--pb-shadow) !important;
+}
+
+[data-testid="stMetricLabel"] {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 0.68rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--pb-gold) !important;
+  opacity: 0.85 !important;
+}
+
+[data-testid="stMetricValue"] {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 1.55rem !important;
+  font-weight: 300 !important;
+  color: var(--pb-cream) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.3 !important;
+}
+
+[data-testid="stMetricDelta"] {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   TABS — Navigation
+═══════════════════════════════════════════════════ */
+.stTabs [data-baseweb="tab-list"] {
+  background: rgba(13, 31, 53, 0.6) !important;
+  border-bottom: 1px solid var(--pb-border) !important;
+  gap: 0 !important;
+  padding: 0 0.5rem !important;
+  border-radius: var(--pb-radius) var(--pb-radius) 0 0 !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 0.73rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  color: var(--pb-slate-light) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  padding: 0.75rem 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+  color: var(--pb-gold-light) !important;
+  background: rgba(201, 168, 76, 0.05) !important;
+}
+
+.stTabs [aria-selected="true"] {
+  color: var(--pb-gold-light) !important;
+  border-bottom: 2px solid var(--pb-gold) !important;
+  background: rgba(201, 168, 76, 0.08) !important;
+}
+
+.stTabs [data-baseweb="tab-panel"] {
+  background: rgba(13, 31, 53, 0.35) !important;
+  border: 1px solid var(--pb-border-soft) !important;
+  border-top: none !important;
+  border-radius: 0 0 var(--pb-radius) var(--pb-radius) !important;
+  padding: 1.5rem !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   DATAFRAMES & TABLES
+═══════════════════════════════════════════════════ */
+[data-testid="stDataFrame"] {
+  border-radius: var(--pb-radius-lg) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--pb-border) !important;
+  box-shadow: var(--pb-shadow-sm) !important;
+}
+
+[data-testid="stDataFrame"] table {
+  background: rgba(13, 31, 53, 0.6) !important;
+}
+
+[data-testid="stDataFrame"] thead th {
+  background: rgba(26, 58, 92, 0.8) !important;
+  color: var(--pb-gold) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--pb-border) !important;
+  padding: 0.7rem 1rem !important;
+}
+
+[data-testid="stDataFrame"] tbody td {
+  color: var(--pb-cream) !important;
+  font-family: 'DM Mono', monospace !important;
+  font-weight: 300 !important;
+  font-size: 0.82rem !important;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.06) !important;
+  padding: 0.55rem 1rem !important;
+}
+
+[data-testid="stDataFrame"] tbody tr:hover td {
+  background: rgba(201, 168, 76, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   ALERT / INFO BOXES
+═══════════════════════════════════════════════════ */
+.stAlert {
+  border-radius: var(--pb-radius) !important;
+  border-left: 3px solid var(--pb-gold) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 300 !important;
+  font-size: 0.85rem !important;
+}
+
+.stAlert[data-baseweb="notification"] {
+  background: rgba(26, 58, 92, 0.5) !important;
+  border: 1px solid var(--pb-border) !important;
+  color: var(--pb-cream) !important;
+}
+
+/* Success */
+.element-container .stSuccess {
+  background: rgba(45, 122, 79, 0.15) !important;
+  border-left-color: var(--pb-green) !important;
+  color: rgba(200, 235, 215, 0.9) !important;
+}
+
+/* Warning */
+.element-container .stWarning {
+  background: rgba(201, 168, 76, 0.12) !important;
+  border-left-color: var(--pb-gold) !important;
+  color: rgba(245, 235, 200, 0.9) !important;
+}
+
+/* Error */
+.element-container .stError {
+  background: rgba(139, 38, 53, 0.15) !important;
+  border-left-color: var(--pb-red) !important;
+  color: rgba(240, 200, 205, 0.9) !important;
+}
+
+/* Info */
+.element-container .stInfo {
+  background: rgba(26, 58, 92, 0.45) !important;
+  border-left-color: rgba(74, 123, 167, 0.8) !important;
+  color: rgba(200, 220, 245, 0.9) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   SLIDERS
+═══════════════════════════════════════════════════ */
+.stSlider [data-baseweb="slider"] {
+  padding: 0.5rem 0 !important;
+}
+
+.stSlider [data-testid="stTickBar"] {
+  color: var(--pb-slate-light) !important;
+  font-size: 0.68rem !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   MULTISELECT & SELECTBOX
+═══════════════════════════════════════════════════ */
+.stMultiSelect [data-baseweb="select"] > div,
+.stSelectbox [data-baseweb="select"] > div {
+  background: rgba(26, 58, 92, 0.5) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius) !important;
+  color: var(--pb-cream) !important;
+  font-weight: 300 !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] {
+  background: rgba(201, 168, 76, 0.2) !important;
+  border: 1px solid var(--pb-gold-dim) !important;
+  color: var(--pb-gold-light) !important;
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   CHECKBOXES
+═══════════════════════════════════════════════════ */
+.stCheckbox label {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 300 !important;
+  font-size: 0.82rem !important;
+  color: var(--pb-cream) !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   DATE INPUT
+═══════════════════════════════════════════════════ */
+.stDateInput input {
+  background: rgba(26, 58, 92, 0.5) !important;
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius) !important;
+  color: var(--pb-cream) !important;
+  font-weight: 300 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   DIVIDERS
+═══════════════════════════════════════════════════ */
+hr {
+  border: none !important;
+  border-top: 1px solid var(--pb-border-soft) !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   SUBHEADER STYLING
+═══════════════════════════════════════════════════ */
+.stApp h2[data-testid="stHeading"],
+.stSubheader {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  font-size: 1.6rem !important;
+  color: var(--pb-cream) !important;
+  letter-spacing: 0.02em !important;
+  position: relative !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   PLOTLY CHART CONTAINERS
+═══════════════════════════════════════════════════ */
+[data-testid="stPlotlyChart"] {
+  border-radius: var(--pb-radius-lg) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--pb-border-soft) !important;
+  box-shadow: var(--pb-shadow-sm) !important;
+  background: rgba(13, 31, 53, 0.4) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(13, 31, 53, 0.4); }
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(201, 168, 76, 0.55); }
+
+/* ═══════════════════════════════════════════════════
+   MARKDOWN BOLD / STRONG
+═══════════════════════════════════════════════════ */
+strong, b {
+  color: var(--pb-gold-light) !important;
+  font-weight: 500 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   COLUMN GAP REFINEMENT
+═══════════════════════════════════════════════════ */
+[data-testid="column"] {
+  gap: 1rem !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   DATA EDITOR
+═══════════════════════════════════════════════════ */
+[data-testid="stDataEditor"] {
+  border: 1px solid var(--pb-border) !important;
+  border-radius: var(--pb-radius-lg) !important;
+  overflow: hidden !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   MARKDOWN TABLES
+═══════════════════════════════════════════════════ */
+.stMarkdown table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  font-family: 'DM Mono', monospace !important;
+  font-size: 0.82rem !important;
+  border-radius: var(--pb-radius) !important;
+  overflow: hidden !important;
+}
+
+.stMarkdown table th {
+  background: rgba(26, 58, 92, 0.8) !important;
+  color: var(--pb-gold) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-size: 0.68rem !important;
+  padding: 0.6rem 0.9rem !important;
+  border-bottom: 1px solid var(--pb-border) !important;
+}
+
+.stMarkdown table td {
+  color: var(--pb-cream) !important;
+  font-weight: 300 !important;
+  padding: 0.5rem 0.9rem !important;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.06) !important;
+  background: rgba(13, 31, 53, 0.4) !important;
+}
+
+.stMarkdown table tr:hover td {
+  background: rgba(201, 168, 76, 0.05) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   IMAGE IN SIDEBAR
+═══════════════════════════════════════════════════ */
+[data-testid="stSidebar"] img {
+  border-radius: var(--pb-radius) !important;
+  border: 1px solid var(--pb-border) !important;
+  opacity: 0.92 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   HELP TOOLTIP ICON
+═══════════════════════════════════════════════════ */
+[data-testid="stTooltipIcon"] svg {
+  fill: var(--pb-gold-dim) !important;
+}
+</style>
+"""
+st.markdown(_PRIVATE_BANK_CSS, unsafe_allow_html=True)
 
 # ── Deutsches Monats-Mapping ──────────────────────────────────────────
 MONATE_DE = {
@@ -135,6 +708,53 @@ def fmt_eur(val: float) -> str:
 def delta_str(val: float) -> str:
     """Hilfsfunktion für st.metric delta (mit Vorzeichen)."""
     return f"{val:+,.2f} €"
+
+
+def apply_pb_layout(fig, title: str = "", height: int = None) -> None:
+    """Wendet das Private-Banking-Designsystem auf alle Plotly-Figures an."""
+    base = dict(
+        paper_bgcolor="rgba(13,31,53,0.0)",
+        plot_bgcolor="rgba(13,31,53,0.0)",
+        font=dict(
+            family="DM Sans, DM Mono, sans-serif",
+            color="rgba(245,240,232,0.82)",
+            size=11,
+        ),
+        title=dict(
+            text=title or (fig.layout.title.text or ""),
+            font=dict(
+                family="Cormorant Garamond, serif",
+                size=16,
+                color="rgba(245,240,232,0.9)",
+            ),
+            x=0.02,
+            xanchor="left",
+        ),
+        legend=dict(
+            bgcolor="rgba(13,31,53,0.55)",
+            bordercolor="rgba(201,168,76,0.25)",
+            borderwidth=1,
+            font=dict(size=10, color="rgba(245,240,232,0.8)"),
+        ),
+        margin=dict(l=16, r=16, t=48, b=16),
+    )
+    if height:
+        base["height"] = height
+    fig.update_layout(**base)
+    fig.update_xaxes(
+        gridcolor="rgba(201,168,76,0.07)",
+        linecolor="rgba(201,168,76,0.18)",
+        tickfont=dict(size=10, color="rgba(245,240,232,0.65)"),
+        title_font=dict(size=11, color="rgba(245,240,232,0.7)"),
+        zeroline=False,
+    )
+    fig.update_yaxes(
+        gridcolor="rgba(201,168,76,0.07)",
+        linecolor="rgba(201,168,76,0.18)",
+        tickfont=dict(size=10, color="rgba(245,240,232,0.65)"),
+        title_font=dict(size=11, color="rgba(245,240,232,0.7)"),
+        zeroline=False,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -534,14 +1154,12 @@ with tabs[tab_idx("📊 Gesamtübersicht")]:
         textposition="top center",
         name="Zielwert",
     ))
+    apply_pb_layout(fig_rule, "50/30/20-Regelanalyse — Ist vs. Ziel")
     fig_rule.update_layout(
-        title="50/30/20-Regelanalyse (Ist vs. Ziel)",
-        yaxis_title="Anteil am Einkommen (%)",
         yaxis_range=[0, max(max(actual_vals), 55)],
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
         legend=dict(orientation="h"),
     )
+    fig_rule.update_yaxes(title_text="Anteil am Einkommen (%)")
     st.plotly_chart(fig_rule, use_container_width=True)
 
     st.divider()
@@ -597,9 +1215,9 @@ with tabs[tab_idx("📊 Gesamtübersicht")]:
             marker_colors=[COMPLEMENTARY_COLORS[0], COMPLEMENTARY_COLORS[1], COLOR_POSITIVE],
             textinfo="label+percent",
         ))
+        apply_pb_layout(fig_ratio, "Ausgabenstruktur")
         fig_ratio.update_layout(
-            title="Ausgabenstruktur Donut",
-            annotations=[dict(text=fmt_eur(gesamt_ausgaben), x=0.5, y=0.5, showarrow=False, font_size=14)],
+            annotations=[dict(text=fmt_eur(gesamt_ausgaben), x=0.5, y=0.5, showarrow=False, font_size=12, font_color="rgba(245,240,232,0.9)")],
         )
         st.plotly_chart(fig_ratio, use_container_width=True)
     with ratio_col2:
@@ -720,7 +1338,8 @@ with tabs[tab_idx("🏠 Fixkosten")]:
             title="Fixkosten nach Kategorie (monatlich)",
             text_auto=".2f",
         )
-        fig_fix_bar.update_layout(showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
+        fig_fix_bar.update_layout(showlegend=False)
+        apply_pb_layout(fig_fix_bar, "Fixkosten nach Kategorie (monatlich)")
         st.plotly_chart(fig_fix_bar, use_container_width=True)
 
 
@@ -826,7 +1445,8 @@ with tabs[tab_idx("⚖️ Saldo & Cashflow")]:
                 color="Saldo", color_continuous_scale="RdYlGn",
                 title="Monatliches Saldo (Einnahmen − Ausgaben)",
             )
-            fig_zs.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+            apply_pb_layout(fig_zs, "Monatliches Saldo — Einnahmen − Ausgaben")
+            fig_zs.update_layout(coloraxis_showscale=False)
             st.plotly_chart(fig_zs, use_container_width=True)
 
             # Einnahmen vs. Ausgaben Linie
@@ -840,7 +1460,7 @@ with tabs[tab_idx("⚖️ Saldo & Cashflow")]:
                 markers=True, title="Einnahmen vs. Ausgaben im Zeitverlauf",
                 color_discrete_map={"Einnahmen": COLOR_POSITIVE, "Ausgaben": COLOR_NEGATIVE},
             )
-            fig_ev.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+            apply_pb_layout(fig_ev, "Einnahmen vs. Ausgaben im Zeitverlauf")
             st.plotly_chart(fig_ev, use_container_width=True)
 
     # ── SANKEY-DIAGRAMM ───────────────────────────────────────────────
@@ -950,10 +1570,8 @@ with tabs[tab_idx("⚖️ Saldo & Cashflow")]:
                 hovertemplate="Von: %{source.label}<br>Nach: %{target.label}<br>Betrag: %{customdata}<extra></extra>",
             ),
         )])
-        fig_sankey.update_layout(
-            title_text="💸 Cashflow: Einnahmen → Budget → Kategorien → Unterkategorien → Saldo",
-            font_size=12, height=650,
-        )
+        apply_pb_layout(fig_sankey, "💸 Cashflow — Einnahmen → Budget → Kategorien → Saldo")
+        fig_sankey.update_layout(font_size=11, height=650)
         st.plotly_chart(fig_sankey, use_container_width=True)
     else:
         st.info("Nicht genügend Daten für das Sankey-Diagramm.")
@@ -1073,6 +1691,7 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     },
                 },
             ))
+            apply_pb_layout(fig_gauge)
             st.plotly_chart(fig_gauge, use_container_width=True)
 
             # Burn-Rate Erklärung
@@ -1138,10 +1757,10 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     color_discrete_sequence=[COLOR_ACCENT],
                 )
                 fig_t.add_hline(
-                    y=20, line_dash="dash", line_color=COLOR_WARN,
+                    y=20, line_dash="dash", line_color="rgba(201,168,76,0.7)",
                     annotation_text="Ziel: 20 %", annotation_position="top right",
                 )
-                fig_t.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+                apply_pb_layout(fig_t, "Sparquote im Zeitverlauf (%)")
                 st.plotly_chart(fig_t, use_container_width=True)
         else:
             st.warning("Keine Einnahmen gefunden.")
@@ -1257,16 +1876,14 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     textposition="inside",
                     insidetextanchor="middle",
                 ))
+            apply_pb_layout(fig_bar_stacked, "Aufteilung des monatlichen Sparbetrags")
             fig_bar_stacked.update_layout(
                 barmode="stack",
-                title="Aufteilung des monatlichen Sparbetrags",
-                yaxis_title="€",
                 yaxis_range=[0, spar_basis_monat * 1.1],
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 height=350,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             )
+            fig_bar_stacked.update_yaxes(title_text="€")
             st.plotly_chart(fig_bar_stacked, use_container_width=True)
 
             # ── Wasserfall + pAV-Kachel ───────────────────────────────────
@@ -1290,13 +1907,9 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     decreasing={"marker": {"color": COLOR_NEGATIVE}},
                     totals={"marker": {"color": COLOR_ACCENT}},
                 ))
-                fig_wf.update_layout(
-                    title="Spar-Wasserfall: Monatliche Verteilung",
-                    yaxis_title="€",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    showlegend=False,
-                )
+                apply_pb_layout(fig_wf, "Spar-Wasserfall — Monatliche Verteilung")
+                fig_wf.update_layout(showlegend=False)
+                fig_wf.update_yaxes(title_text="€")
                 st.plotly_chart(fig_wf, use_container_width=True)
 
             with col_pav:
@@ -1381,15 +1994,13 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     text=df_pav_tl["Gesamtkapital"].map(fmt_eur),
                     textposition="top center",
                 ))
+                apply_pb_layout(fig_pav_tl, "Kumulative pAV-Entwicklung — Einzahlungen + Zuschuss")
                 fig_pav_tl.update_layout(
                     barmode="stack",
-                    title="Kumulative pAV-Entwicklung (eigene Einzahlungen + Zuschuss)",
-                    yaxis_title="€ (kumuliert)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)",
                     legend=dict(orientation="h"),
                     height=400,
                 )
+                fig_pav_tl.update_yaxes(title_text="€ (kumuliert)")
                 st.plotly_chart(fig_pav_tl, use_container_width=True)
             else:
                 st.info("Keine Monatsdaten für den Zeitstrahl verfügbar.")
@@ -1435,7 +2046,8 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                         },
                     },
                 ))
-                fig_tg.update_layout(height=350, paper_bgcolor="rgba(0,0,0,0)")
+                apply_pb_layout(fig_tg)
+                fig_tg.update_layout(height=350)
                 st.plotly_chart(fig_tg, use_container_width=True)
                 st.caption(
                     f"Jahresbetrag bei gleichbleibender Rate: **{fmt_eur(tilgung_jahresbetrag)}** "
@@ -1469,9 +2081,10 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                             COMPLEMENTARY_COLORS[5], COMPLEMENTARY_COLORS[6],
                         ]),
                     ))
+                    apply_pb_layout(fig_sun, "Portfolio-Allokation")
                     fig_sun.update_layout(
-                        height=350, paper_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(t=10, b=10, l=10, r=10),
+                        height=350,
+                        margin=dict(t=48, b=10, l=10, r=10),
                     )
                     st.plotly_chart(fig_sun, use_container_width=True)
                 else:
@@ -1624,11 +2237,10 @@ with tabs[tab_idx("📐 Kennzahlen")]:
                     COMPLEMENTARY_COLORS[5], COMPLEMENTARY_COLORS[6],
                 ]),
             ))
+            apply_pb_layout(fig_z_sun, f"Portfolio-Aufteilung Zusatzbudget ({fmt_eur(zusatz_betrag)})")
             fig_z_sun.update_layout(
-                title=f"Portfolio-Aufteilung Zusatzbudget ({fmt_eur(zusatz_betrag)})",
                 height=450,
-                paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(t=40, b=10, l=10, r=10),
+                margin=dict(t=48, b=10, l=10, r=10),
             )
             st.plotly_chart(fig_z_sun, use_container_width=True)
 
@@ -1772,14 +2384,11 @@ if mode == "unser":
                         text=[f"{v:.1f} %" for v in anteil_fair],
                         textposition="outside",
                     ))
-                    fig_fair.add_hline(y=50, line_dash="dash", line_color=COLOR_NEUTRAL,
+                    apply_pb_layout(fig_fair, "Einkommensanteile im Vergleich")
+                    fig_fair.update_layout(yaxis_range=[0, 100])
+                    fig_fair.update_yaxes(title_text="Anteil (%)")
+                    fig_fair.add_hline(y=50, line_dash="dash", line_color="rgba(201,168,76,0.5)",
                                        annotation_text="50/50-Linie")
-                    fig_fair.update_layout(
-                        title="Einkommensanteile im Vergleich",
-                        yaxis_range=[0, 100],
-                        yaxis_title="Anteil (%)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                    )
                     st.plotly_chart(fig_fair, use_container_width=True)
         else:
             st.info("Keine Einnahmen-Daten mit Personenzuordnung verfügbar.")
@@ -1918,7 +2527,7 @@ with tabs[tab_idx("💡 Optimierungspotenzial")]:
                     title="Vergleich: Aktuell vs. Vormonat (Alarmkategorien)",
                     text_auto=".2f",
                 )
-                fig_alarm.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+                apply_pb_layout(fig_alarm, "Vergleich — Aktuell vs. Vormonat (Alarmkategorien)")
                 st.plotly_chart(fig_alarm, use_container_width=True)
             else:
                 st.success(f"✅ Keine Kategorie mit ≥ 15 % Anstieg gegenüber dem Vormonat ({prev_m}).")
