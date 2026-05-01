@@ -825,34 +825,246 @@ with st.sidebar:
     if os.path.exists("Bild Dashboard.PNG"):
         st.image("Bild Dashboard.PNG", use_container_width=True)
 
-    st.header("👤 Dashboard wählen")
-
     if "mode" not in st.session_state:
         st.session_state.mode = "unser"
 
-    btn_cfg = [
-        ("🚀 Unsere Finanzen",  "unser"),
-        ("👤 Simons Finanzen",  "simon"),
-        ("👤 Alisias Finanzen", "alisia"),
-    ]
-    for label, key in btn_cfg:
-        if st.button(label, use_container_width=True):
-            st.session_state.mode = key
+    # ── Aktives Dashboard anzeigen ─────────────────────────────────
+    _mode_labels = {
+        "unser":  ("Gemeinsam", "avatar_unser.png",  "🚀"),
+        "simon":  ("Simon",     "avatar_simon.png",  "👤"),
+        "alisia": ("Alisia",    "avatar_alisia.png", "👤"),
+    }
+    _cur_name, _cur_avatar, _cur_icon = _mode_labels[st.session_state.mode]
 
-    mode = st.session_state.mode
-    SHEET_ID = SHEET_IDS[mode]
+    st.markdown("""
+    <div style="
+        text-align: center;
+        padding: 1.2rem 0.5rem 0.8rem 0.5rem;
+    ">
+        <div style="
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(201,168,76,0.75);
+            margin-bottom: 0.5rem;
+        ">Aktives Dashboard</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if mode == "unser":
-        st.success("✅ Unsere Finanzen")
-        dashboard_title = "🚀 Unsere Finanzzentrale"
-    elif mode == "simon":
-        st.info("✅ Simons Finanzen")
-        dashboard_title = "👤 Simons Finanzzentrale"
-    else:
-        st.info("✅ Alisias Finanzen")
-        dashboard_title = "👤 Alisias Finanzzentrale"
+    # Profilbild oder Fallback-Avatar anzeigen
+    _sb_col1, _sb_col2, _sb_col3 = st.columns([1, 2, 1])
+    with _sb_col2:
+        if os.path.exists(_cur_avatar):
+            st.image(_cur_avatar, use_container_width=True)
+        else:
+            st.markdown(f"""
+            <div style="
+                width: 72px; height: 72px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, rgba(26,58,92,0.9), rgba(13,31,53,0.95));
+                border: 2px solid rgba(201,168,76,0.5);
+                display: flex; align-items: center; justify-content: center;
+                margin: 0 auto;
+                font-size: 2rem;
+                box-shadow: 0 0 20px rgba(201,168,76,0.15);
+            ">{_cur_icon}</div>
+            """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="
+        text-align: center;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.1rem;
+        font-weight: 400;
+        color: rgba(245,240,232,0.92);
+        letter-spacing: 0.06em;
+        margin-top: 0.5rem;
+        margin-bottom: 1.2rem;
+    ">{_cur_name}</div>
+    """, unsafe_allow_html=True)
+
+    # ── Dashboard-Wählen Button ────────────────────────────────────
+    if st.button("⊞  Dashboard Wählen", use_container_width=True, key="btn_open_modal"):
+        st.session_state["_show_dashboard_modal"] = True
 
     st.divider()
+
+# ── Dashboard-Auswahl Modal ───────────────────────────────────────────
+if st.session_state.get("_show_dashboard_modal", False):
+
+    # ── Modal CSS ────────────────────────────────────────────────────
+    st.markdown("""
+    <style>
+    /* Modal-Overlay */
+    .pb-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 15, 28, 0.82);
+        backdrop-filter: blur(8px);
+        z-index: 9990;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* Modal-Fenster */
+    .pb-modal-window {
+        background: linear-gradient(145deg, #0f1e33 0%, #0a1726 100%);
+        border: 1px solid rgba(201,168,76,0.30);
+        border-radius: 14px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,168,76,0.08);
+        padding: 2.5rem 2.5rem 2rem 2.5rem;
+        min-width: 460px;
+        max-width: 560px;
+        position: relative;
+    }
+    .pb-modal-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.4rem;
+        font-weight: 400;
+        color: rgba(245,240,232,0.95);
+        letter-spacing: 0.05em;
+        text-align: center;
+        margin-bottom: 0.3rem;
+    }
+    .pb-modal-subtitle {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.65rem;
+        font-weight: 300;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(201,168,76,0.65);
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .pb-modal-divider {
+        width: 60px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent);
+        margin: 0 auto 1.8rem auto;
+    }
+    /* Avatar-Card */
+    .pb-avatar-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 1.2rem 0.8rem 1rem 0.8rem;
+        border-radius: 10px;
+        border: 1px solid rgba(201,168,76,0.12);
+        background: rgba(26,58,92,0.25);
+        cursor: pointer;
+        transition: all 0.22s ease;
+        text-align: center;
+    }
+    .pb-avatar-card:hover {
+        border-color: rgba(201,168,76,0.45);
+        background: rgba(201,168,76,0.08);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 28px rgba(201,168,76,0.12);
+    }
+    .pb-avatar-card.active {
+        border-color: rgba(201,168,76,0.6);
+        background: rgba(201,168,76,0.10);
+        box-shadow: 0 0 0 1px rgba(201,168,76,0.25), 0 8px 24px rgba(201,168,76,0.10);
+    }
+    .pb-avatar-img {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(201,168,76,0.4);
+        box-shadow: 0 0 18px rgba(201,168,76,0.12);
+    }
+    .pb-avatar-fallback {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a3a5c, #0d1f35);
+        border: 2px solid rgba(201,168,76,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        box-shadow: 0 0 18px rgba(201,168,76,0.10);
+    }
+    .pb-avatar-name {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1rem;
+        font-weight: 400;
+        color: rgba(245,240,232,0.88);
+        letter-spacing: 0.05em;
+    }
+    .pb-avatar-sub {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.6rem;
+        font-weight: 300;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(201,168,76,0.6);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── Modal Inhalt ─────────────────────────────────────────────────
+    st.markdown("""
+    <div class="pb-modal-title">Dashboard wählen</div>
+    <div class="pb-modal-subtitle">Persönliche Finanzansicht auswählen</div>
+    <div class="pb-modal-divider"></div>
+    """, unsafe_allow_html=True)
+
+    _modal_cfg = [
+        ("unser",  "Gemeinsam", "avatar_unser.png",  "🚀", "Unsere Finanzen"),
+        ("simon",  "Simon",     "avatar_simon.png",  "👤", "Simons Finanzen"),
+        ("alisia", "Alisia",    "avatar_alisia.png", "👤", "Alisias Finanzen"),
+    ]
+
+    _modal_cols = st.columns(3, gap="medium")
+    for _col, (_key, _name, _avatar_file, _icon, _sub) in zip(_modal_cols, _modal_cfg):
+        with _col:
+            _is_active = (st.session_state.mode == _key)
+            _active_class = "active" if _is_active else ""
+            # Avatar-Bild oder Fallback
+            if os.path.exists(_avatar_file):
+                _img_tag = f'<img src="{_avatar_file}" class="pb-avatar-img" alt="{_name}">'
+            else:
+                _img_tag = f'<div class="pb-avatar-fallback">{_icon}</div>'
+            st.markdown(f"""
+            <div class="pb-avatar-card {_active_class}">
+                {_img_tag}
+                <div class="pb-avatar-name">{_name}</div>
+                <div class="pb-avatar-sub">{_sub}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            # Unsichtbarer Button hinter der Card
+            if st.button(
+                "✓ Aktiv" if _is_active else f"Wählen",
+                key=f"modal_select_{_key}",
+                use_container_width=True,
+            ):
+                st.session_state.mode = _key
+                st.session_state["_show_dashboard_modal"] = False
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    _close_col1, _close_col2, _close_col3 = st.columns([1, 2, 1])
+    with _close_col2:
+        if st.button("✕  Schließen", key="btn_close_modal", use_container_width=True):
+            st.session_state["_show_dashboard_modal"] = False
+            st.rerun()
+
+    st.divider()
+
+# ── Modus & Titel auflösen ────────────────────────────────────────────
+mode = st.session_state.mode
+SHEET_ID = SHEET_IDS[mode]
+
+if mode == "unser":
+    dashboard_title = "🚀 Unsere Finanzzentrale"
+elif mode == "simon":
+    dashboard_title = "👤 Simons Finanzzentrale"
+else:
+    dashboard_title = "👤 Alisias Finanzzentrale"
 
 # ── Daten laden ───────────────────────────────────────────────────────
 st.title(dashboard_title)
