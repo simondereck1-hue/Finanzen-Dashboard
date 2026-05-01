@@ -830,9 +830,9 @@ with st.sidebar:
 
     # ── Aktives Dashboard anzeigen ─────────────────────────────────
     _mode_labels = {
-        "unser":  ("Gemeinsam", "avatar_unser.png",  "🚀"),
-        "simon":  ("Simon",     "avatar_simon.png",  "👤"),
-        "alisia": ("Alisia",    "avatar_alisia.png", "👤"),
+        "unser":  ("Gemeinsam", "avatar_unser.jpg",  "🚀"),
+        "simon":  ("Simon",     "avatar_simon.jpg",  "👤"),
+        "alisia": ("Alisia",    "avatar_alisia.jpg", "👤"),
     }
     _cur_name, _cur_avatar, _cur_icon = _mode_labels[st.session_state.mode]
 
@@ -1014,9 +1014,9 @@ if st.session_state.get("_show_dashboard_modal", False):
     """, unsafe_allow_html=True)
 
     _modal_cfg = [
-        ("unser",  "Gemeinsam", "avatar_unser.png",  "🚀", "Unsere Finanzen"),
-        ("simon",  "Simon",     "avatar_simon.png",  "👤", "Simons Finanzen"),
-        ("alisia", "Alisia",    "avatar_alisia.png", "👤", "Alisias Finanzen"),
+        ("unser",  "Gemeinsam", "avatar_unser.jpg",  "🚀", "Unsere Finanzen"),
+        ("simon",  "Simon",     "avatar_simon.jpg",  "👤", "Simons Finanzen"),
+        ("alisia", "Alisia",    "avatar_alisia.jpg", "👤", "Alisias Finanzen"),
     ]
 
     _modal_cols = st.columns(3, gap="medium")
