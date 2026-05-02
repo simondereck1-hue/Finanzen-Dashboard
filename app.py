@@ -887,131 +887,197 @@ with st.sidebar:
     # ── Dashboard-Wählen Button ────────────────────────────────────
     if st.button("⊞  Dashboard Wählen", use_container_width=True, key="btn_open_modal"):
         st.session_state["_show_dashboard_modal"] = True
+        st.rerun()
 
     st.divider()
 
 # ── Dashboard-Auswahl Modal ───────────────────────────────────────────
 if st.session_state.get("_show_dashboard_modal", False):
 
-    # ── Modal CSS ────────────────────────────────────────────────────
+    # ── Vollbild-Overlay CSS: Sidebar + Header komplett ausblenden ────
     st.markdown("""
     <style>
-    /* Modal-Overlay */
-    .pb-modal-overlay {
+    /* Sidebar vollständig ausblenden wenn Modal aktiv */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    /* Hauptinhalt auf volle Breite ausweiten */
+    .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    /* Header/Toolbar ausblenden */
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    /* Vollbild-Overlay */
+    .pb-fullscreen-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(7, 15, 28, 0.82);
-        backdrop-filter: blur(8px);
-        z-index: 9990;
+        background: linear-gradient(160deg, #07121e 0%, #0d1f35 40%, #0a1726 100%);
+        z-index: 99999;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        animation: pb-overlay-fadein 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    /* Modal-Fenster */
-    .pb-modal-window {
-        background: linear-gradient(145deg, #0f1e33 0%, #0a1726 100%);
-        border: 1px solid rgba(201,168,76,0.30);
-        border-radius: 14px;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,168,76,0.08);
-        padding: 2.5rem 2.5rem 2rem 2.5rem;
-        min-width: 460px;
-        max-width: 560px;
+    @keyframes pb-overlay-fadein {
+        from { opacity: 0; transform: scale(1.03); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+    /* Dekorativer Hintergrund-Kreis */
+    .pb-fullscreen-overlay::before {
+        content: "";
+        position: absolute;
+        width: 700px;
+        height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    /* Innerer Content-Wrapper */
+    .pb-overlay-inner {
         position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 860px;
+        padding: 0 2rem;
+        animation: pb-inner-slidein 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
     }
-    .pb-modal-title {
+    @keyframes pb-inner-slidein {
+        from { opacity: 0; transform: translateY(28px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .pb-overlay-title {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 1.4rem;
+        font-size: 2rem;
         font-weight: 400;
-        color: rgba(245,240,232,0.95);
-        letter-spacing: 0.05em;
+        color: rgba(245,240,232,0.97);
+        letter-spacing: 0.06em;
         text-align: center;
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.4rem;
     }
-    .pb-modal-subtitle {
+    .pb-overlay-subtitle {
         font-family: 'DM Sans', sans-serif;
         font-size: 0.65rem;
         font-weight: 300;
-        letter-spacing: 0.14em;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: rgba(201,168,76,0.65);
+        color: rgba(201,168,76,0.7);
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 0.5rem;
     }
-    .pb-modal-divider {
-        width: 60px;
+    .pb-overlay-divider {
+        width: 80px;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent);
-        margin: 0 auto 1.8rem auto;
+        background: linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent);
+        margin: 0 auto 2.5rem auto;
     }
     /* Avatar-Card */
     .pb-avatar-card {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.7rem;
-        padding: 1.2rem 0.8rem 1rem 0.8rem;
-        border-radius: 10px;
-        border: 1px solid rgba(201,168,76,0.12);
-        background: rgba(26,58,92,0.25);
+        gap: 0.75rem;
+        padding: 1.6rem 1rem 1.2rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(201,168,76,0.14);
+        background: rgba(26,58,92,0.28);
         cursor: pointer;
-        transition: all 0.22s ease;
+        transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
         text-align: center;
+        animation: pb-card-popin 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .pb-avatar-card:nth-child(1) { animation-delay: 0.12s; }
+    .pb-avatar-card:nth-child(2) { animation-delay: 0.20s; }
+    .pb-avatar-card:nth-child(3) { animation-delay: 0.28s; }
+    @keyframes pb-card-popin {
+        from { opacity: 0; transform: translateY(20px) scale(0.96); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
     }
     .pb-avatar-card:hover {
-        border-color: rgba(201,168,76,0.45);
-        background: rgba(201,168,76,0.08);
-        transform: translateY(-3px);
-        box-shadow: 0 8px 28px rgba(201,168,76,0.12);
+        border-color: rgba(201,168,76,0.5);
+        background: rgba(201,168,76,0.09);
+        transform: translateY(-5px);
+        box-shadow: 0 12px 36px rgba(201,168,76,0.14), 0 0 0 1px rgba(201,168,76,0.18);
     }
     .pb-avatar-card.active {
-        border-color: rgba(201,168,76,0.6);
-        background: rgba(201,168,76,0.10);
-        box-shadow: 0 0 0 1px rgba(201,168,76,0.25), 0 8px 24px rgba(201,168,76,0.10);
+        border-color: rgba(201,168,76,0.65);
+        background: rgba(201,168,76,0.12);
+        box-shadow: 0 0 0 1px rgba(201,168,76,0.30), 0 10px 28px rgba(201,168,76,0.12);
     }
-    .pb-avatar-img {
-        width: 72px;
-        height: 72px;
+    .pb-avatar-circle {
+        width: 88px;
+        height: 88px;
         border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid rgba(201,168,76,0.4);
-        box-shadow: 0 0 18px rgba(201,168,76,0.12);
-    }
-    .pb-avatar-fallback {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #1a3a5c, #0d1f35);
-        border: 2px solid rgba(201,168,76,0.4);
+        border: 2px solid rgba(201,168,76,0.45);
+        box-shadow: 0 0 22px rgba(201,168,76,0.13);
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.8rem;
-        box-shadow: 0 0 18px rgba(201,168,76,0.10);
+        background: linear-gradient(135deg, #1a3a5c, #0d1f35);
+        flex-shrink: 0;
+    }
+    .pb-avatar-circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .pb-avatar-fallback-inner {
+        font-size: 2.2rem;
+        line-height: 1;
     }
     .pb-avatar-name {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 1rem;
+        font-size: 1.15rem;
         font-weight: 400;
-        color: rgba(245,240,232,0.88);
-        letter-spacing: 0.05em;
+        color: rgba(245,240,232,0.92);
+        letter-spacing: 0.06em;
     }
     .pb-avatar-sub {
         font-family: 'DM Sans', sans-serif;
         font-size: 0.6rem;
         font-weight: 300;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.13em;
         text-transform: uppercase;
-        color: rgba(201,168,76,0.6);
+        color: rgba(201,168,76,0.65);
+    }
+    /* Wechsel-Animation beim Auswählen */
+    @keyframes pb-select-flash {
+        0%   { background: rgba(201,168,76,0.08); }
+        40%  { background: rgba(201,168,76,0.28); box-shadow: 0 0 40px rgba(201,168,76,0.25); }
+        100% { background: rgba(201,168,76,0.12); }
+    }
+    .pb-avatar-card.selecting {
+        animation: pb-select-flash 0.5s ease forwards;
     }
     </style>
+
+    <div class="pb-fullscreen-overlay">
+      <div class="pb-overlay-inner">
+        <div class="pb-overlay-title">Dashboard wählen</div>
+        <div class="pb-overlay-subtitle">Persönliche Finanzansicht auswählen</div>
+        <div class="pb-overlay-divider"></div>
+      </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    # ── Modal Inhalt ─────────────────────────────────────────────────
-    st.markdown("""
-    <div class="pb-modal-title">Dashboard wählen</div>
-    <div class="pb-modal-subtitle">Persönliche Finanzansicht auswählen</div>
-    <div class="pb-modal-divider"></div>
-    """, unsafe_allow_html=True)
+    # ── Avatar-Bilder als Base64 einbetten (Streamlit-kompatibel) ────
+    import base64
+
+    def _img_to_b64(path: str) -> str | None:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+            ext = path.rsplit(".", 1)[-1].lower()
+            mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}.get(ext, "image/jpeg")
+            return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+        except Exception:
+            return None
 
     _modal_cfg = [
         ("unser",  "Gemeinsam", "avatar_unser.jpg",  "🚀", "Unsere Finanzen"),
@@ -1019,31 +1085,44 @@ if st.session_state.get("_show_dashboard_modal", False):
         ("alisia", "Alisia",    "avatar_alisia.jpg", "👤", "Alisias Finanzen"),
     ]
 
-    _modal_cols = st.columns(3, gap="medium")
+    _modal_cols = st.columns(3, gap="large")
     for _col, (_key, _name, _avatar_file, _icon, _sub) in zip(_modal_cols, _modal_cfg):
         with _col:
             _is_active = (st.session_state.mode == _key)
             _active_class = "active" if _is_active else ""
-            # Avatar-Bild oder Fallback
-            if os.path.exists(_avatar_file):
-                _img_tag = f'<img src="{_avatar_file}" class="pb-avatar-img" alt="{_name}">'
+            # Avatar: Base64-eingebettetes Bild oder Emoji-Fallback
+            _b64 = _img_to_b64(_avatar_file)
+            if _b64:
+                _avatar_inner = f'<img src="{_b64}" alt="{_name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
             else:
-                _img_tag = f'<div class="pb-avatar-fallback">{_icon}</div>'
+                _avatar_inner = f'<span class="pb-avatar-fallback-inner">{_icon}</span>'
             st.markdown(f"""
             <div class="pb-avatar-card {_active_class}">
-                {_img_tag}
+                <div class="pb-avatar-circle">{_avatar_inner}</div>
                 <div class="pb-avatar-name">{_name}</div>
                 <div class="pb-avatar-sub">{_sub}</div>
             </div>
             """, unsafe_allow_html=True)
-            # Unsichtbarer Button hinter der Card
+            # Button zum Wählen (mit Wechsel-Animation via JS-Klasse)
             if st.button(
-                "✓ Aktiv" if _is_active else f"Wählen",
+                "✓ Aktiv" if _is_active else "Wählen",
                 key=f"modal_select_{_key}",
                 use_container_width=True,
             ):
                 st.session_state.mode = _key
                 st.session_state["_show_dashboard_modal"] = False
+                # Kurze Übergangs-Animation beim Verlassen des Modals
+                st.markdown("""
+                <style>
+                .pb-fullscreen-overlay {
+                    animation: pb-overlay-fadeout 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+                }
+                @keyframes pb-overlay-fadeout {
+                    from { opacity: 1; transform: scale(1); }
+                    to   { opacity: 0; transform: scale(0.97); }
+                }
+                </style>
+                """, unsafe_allow_html=True)
                 st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
