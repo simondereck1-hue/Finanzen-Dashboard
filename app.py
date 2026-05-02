@@ -895,64 +895,39 @@ with st.sidebar:
 if st.session_state.get("_show_dashboard_modal", False):
 
     # ── Vollbild-Overlay CSS: Sidebar + Header komplett ausblenden ────
+    # WICHTIG: Das Overlay ist ein reiner CSS-Hintergrund (kein position:fixed über den Buttons).
+    # Die Streamlit-Elemente (Columns, Buttons) liegen im normalen Flow und sind anklickbar.
     st.markdown("""
     <style>
     /* Sidebar vollständig ausblenden wenn Modal aktiv */
     [data-testid="stSidebar"] {
         display: none !important;
     }
-    /* Hauptinhalt auf volle Breite ausweiten */
-    .main .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 100% !important;
-    }
     /* Header/Toolbar ausblenden */
     [data-testid="stHeader"] {
         display: none !important;
     }
-    /* Vollbild-Overlay */
-    .pb-fullscreen-overlay {
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(160deg, #07121e 0%, #0d1f35 40%, #0a1726 100%);
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+    /* App-Hintergrund auf Vollbild-Overlay umschalten */
+    .stApp {
+        background: linear-gradient(160deg, #07121e 0%, #0d1f35 50%, #0a1726 100%) !important;
         animation: pb-overlay-fadein 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     @keyframes pb-overlay-fadein {
-        from { opacity: 0; transform: scale(1.03); }
-        to   { opacity: 1; transform: scale(1); }
+        from { opacity: 0; }
+        to   { opacity: 1; }
     }
-    /* Dekorativer Hintergrund-Kreis */
-    .pb-fullscreen-overlay::before {
-        content: "";
-        position: absolute;
-        width: 700px;
-        height: 700px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
-        pointer-events: none;
+    /* Hauptinhalt zentrieren */
+    .main .block-container {
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        max-width: 960px !important;
+        margin: 0 auto !important;
+        padding-top: 4rem !important;
     }
-    /* Innerer Content-Wrapper */
-    .pb-overlay-inner {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        max-width: 860px;
-        padding: 0 2rem;
-        animation: pb-inner-slidein 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
-    }
-    @keyframes pb-inner-slidein {
-        from { opacity: 0; transform: translateY(28px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
+    /* Titel-Bereich */
     .pb-overlay-title {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 400;
         color: rgba(245,240,232,0.97);
         letter-spacing: 0.06em;
@@ -973,9 +948,9 @@ if st.session_state.get("_show_dashboard_modal", False):
         width: 80px;
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent);
-        margin: 0 auto 2.5rem auto;
+        margin: 0 auto 2rem auto;
     }
-    /* Avatar-Card */
+    /* Avatar-Card – normaler Block-Flow, keine fixed-Positionierung */
     .pb-avatar-card {
         display: flex;
         flex-direction: column;
@@ -984,23 +959,16 @@ if st.session_state.get("_show_dashboard_modal", False):
         padding: 1.6rem 1rem 1.2rem 1rem;
         border-radius: 12px;
         border: 1px solid rgba(201,168,76,0.14);
-        background: rgba(26,58,92,0.28);
-        cursor: pointer;
-        transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        background: rgba(26,58,92,0.35);
         text-align: center;
+        transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
         animation: pb-card-popin 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .pb-avatar-card:nth-child(1) { animation-delay: 0.12s; }
-    .pb-avatar-card:nth-child(2) { animation-delay: 0.20s; }
-    .pb-avatar-card:nth-child(3) { animation-delay: 0.28s; }
-    @keyframes pb-card-popin {
-        from { opacity: 0; transform: translateY(20px) scale(0.96); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
+        margin-bottom: 0.5rem;
     }
     .pb-avatar-card:hover {
         border-color: rgba(201,168,76,0.5);
         background: rgba(201,168,76,0.09);
-        transform: translateY(-5px);
+        transform: translateY(-4px);
         box-shadow: 0 12px 36px rgba(201,168,76,0.14), 0 0 0 1px rgba(201,168,76,0.18);
     }
     .pb-avatar-card.active {
@@ -1008,6 +976,14 @@ if st.session_state.get("_show_dashboard_modal", False):
         background: rgba(201,168,76,0.12);
         box-shadow: 0 0 0 1px rgba(201,168,76,0.30), 0 10px 28px rgba(201,168,76,0.12);
     }
+    @keyframes pb-card-popin {
+        from { opacity: 0; transform: translateY(22px) scale(0.96); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* Gestaffelte Animation pro Card via Element-Reihenfolge */
+    .pb-card-1 { animation-delay: 0.10s; }
+    .pb-card-2 { animation-delay: 0.20s; }
+    .pb-card-3 { animation-delay: 0.30s; }
     .pb-avatar-circle {
         width: 88px;
         height: 88px;
@@ -1020,12 +996,7 @@ if st.session_state.get("_show_dashboard_modal", False):
         justify-content: center;
         background: linear-gradient(135deg, #1a3a5c, #0d1f35);
         flex-shrink: 0;
-    }
-    .pb-avatar-circle img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
+        margin: 0 auto;
     }
     .pb-avatar-fallback-inner {
         font-size: 2.2rem;
@@ -1046,24 +1017,14 @@ if st.session_state.get("_show_dashboard_modal", False):
         text-transform: uppercase;
         color: rgba(201,168,76,0.65);
     }
-    /* Wechsel-Animation beim Auswählen */
-    @keyframes pb-select-flash {
-        0%   { background: rgba(201,168,76,0.08); }
-        40%  { background: rgba(201,168,76,0.28); box-shadow: 0 0 40px rgba(201,168,76,0.25); }
-        100% { background: rgba(201,168,76,0.12); }
-    }
-    .pb-avatar-card.selecting {
-        animation: pb-select-flash 0.5s ease forwards;
-    }
     </style>
+    """, unsafe_allow_html=True)
 
-    <div class="pb-fullscreen-overlay">
-      <div class="pb-overlay-inner">
-        <div class="pb-overlay-title">Dashboard wählen</div>
-        <div class="pb-overlay-subtitle">Persönliche Finanzansicht auswählen</div>
-        <div class="pb-overlay-divider"></div>
-      </div>
-    </div>
+    # ── Titel ─────────────────────────────────────────────────────────
+    st.markdown("""
+    <div class="pb-overlay-title">Dashboard wählen</div>
+    <div class="pb-overlay-subtitle">Persönliche Finanzansicht auswählen</div>
+    <div class="pb-overlay-divider"></div>
     """, unsafe_allow_html=True)
 
     # ── Avatar-Bilder als Base64 einbetten (Streamlit-kompatibel) ────
@@ -1080,13 +1041,13 @@ if st.session_state.get("_show_dashboard_modal", False):
             return None
 
     _modal_cfg = [
-        ("unser",  "Gemeinsam", "avatar_unser.jpg",  "🚀", "Unsere Finanzen"),
-        ("simon",  "Simon",     "avatar_simon.jpg",  "👤", "Simons Finanzen"),
-        ("alisia", "Alisia",    "avatar_alisia.jpg", "👤", "Alisias Finanzen"),
+        ("unser",  "Gemeinsam", "avatar_unser.jpg",  "🚀", "Unsere Finanzen",  "pb-card-1"),
+        ("simon",  "Simon",     "avatar_simon.jpg",  "👤", "Simons Finanzen",  "pb-card-2"),
+        ("alisia", "Alisia",    "avatar_alisia.jpg", "👤", "Alisias Finanzen", "pb-card-3"),
     ]
 
     _modal_cols = st.columns(3, gap="large")
-    for _col, (_key, _name, _avatar_file, _icon, _sub) in zip(_modal_cols, _modal_cfg):
+    for _col, (_key, _name, _avatar_file, _icon, _sub, _anim_class) in zip(_modal_cols, _modal_cfg):
         with _col:
             _is_active = (st.session_state.mode == _key)
             _active_class = "active" if _is_active else ""
@@ -1096,14 +1057,15 @@ if st.session_state.get("_show_dashboard_modal", False):
                 _avatar_inner = f'<img src="{_b64}" alt="{_name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
             else:
                 _avatar_inner = f'<span class="pb-avatar-fallback-inner">{_icon}</span>'
+            # Card als reines HTML (kein fixed-Overlay darüber)
             st.markdown(f"""
-            <div class="pb-avatar-card {_active_class}">
+            <div class="pb-avatar-card {_active_class} {_anim_class}">
                 <div class="pb-avatar-circle">{_avatar_inner}</div>
                 <div class="pb-avatar-name">{_name}</div>
                 <div class="pb-avatar-sub">{_sub}</div>
             </div>
             """, unsafe_allow_html=True)
-            # Button zum Wählen (mit Wechsel-Animation via JS-Klasse)
+            # Streamlit-Button – liegt normal im DOM, ist anklickbar
             if st.button(
                 "✓ Aktiv" if _is_active else "Wählen",
                 key=f"modal_select_{_key}",
@@ -1111,18 +1073,6 @@ if st.session_state.get("_show_dashboard_modal", False):
             ):
                 st.session_state.mode = _key
                 st.session_state["_show_dashboard_modal"] = False
-                # Kurze Übergangs-Animation beim Verlassen des Modals
-                st.markdown("""
-                <style>
-                .pb-fullscreen-overlay {
-                    animation: pb-overlay-fadeout 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
-                }
-                @keyframes pb-overlay-fadeout {
-                    from { opacity: 1; transform: scale(1); }
-                    to   { opacity: 0; transform: scale(0.97); }
-                }
-                </style>
-                """, unsafe_allow_html=True)
                 st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
