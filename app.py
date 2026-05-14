@@ -637,6 +637,13 @@ SHEET_IDS = {
     "alisia": "1eCvGkPpavtdgrj1_FgnMqyeMJS6ye6NmhGIf1O_E--4",
 }
 
+# ── Google-Sheets URLs (Änderung 1: Dynamischer Link) ─────────────────
+SHEET_URLS = {
+    "unser":  f"https://docs.google.com/spreadsheets/d/{SHEET_IDS['unser']}/edit",
+    "simon":  f"https://docs.google.com/spreadsheets/d/{SHEET_IDS['simon']}/edit",
+    "alisia": f"https://docs.google.com/spreadsheets/d/{SHEET_IDS['alisia']}/edit",
+}
+
 
 # ──────────────────────────────────────────────────────────────────────
 # 2. HILFSFUNKTIONEN
@@ -889,6 +896,30 @@ with st.sidebar:
         st.session_state["_show_dashboard_modal"] = True
         st.rerun()
 
+    # ── Google-Sheets-Link (Änderung 1: Dynamischer Link) ─────────────
+    _sheet_url = SHEET_URLS.get(st.session_state.mode, "#")
+    st.markdown(
+        f"""
+        <div style="text-align:center; margin-top:0.5rem;">
+            <a href="{_sheet_url}" target="_blank" style="
+                display: inline-block;
+                font-family: 'DM Sans', sans-serif;
+                font-size: 0.72rem;
+                font-weight: 400;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: rgba(201,168,76,0.85);
+                text-decoration: none;
+                border: 1px solid rgba(201,168,76,0.3);
+                border-radius: 5px;
+                padding: 0.4rem 0.85rem;
+                background: rgba(201,168,76,0.06);
+            ">📊 Google Sheet öffnen ↗</a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.divider()
 
 # ── Dashboard-Auswahl Modal ───────────────────────────────────────────
@@ -1084,6 +1115,9 @@ if st.session_state.get("_show_dashboard_modal", False):
 
     st.divider()
 
+    # ── Änderung 3: Rendering stoppen – nur Auswahl-Modus anzeigen ────
+    st.stop()
+
 # ── Modus & Titel auflösen ────────────────────────────────────────────
 mode = st.session_state.mode
 SHEET_ID = SHEET_IDS[mode]
@@ -1124,12 +1158,39 @@ def _sort_key(label):
         return datetime.min
 
 sorted_labels = sorted(filter_mapping.keys(), key=_sort_key)
-month_options = ["Gesamter Zeitraum", "Benutzerdefinierter Zeitraum"] + sorted_labels
+month_options = ["Gesamter Zeitraum"] + sorted_labels
 
-# ── Zeitraum-Selektor in der Sidebar ─────────────────────────────────
+# ── Zeitraum-Selektor in der Sidebar (Änderung 4: select_slider) ──────
 with st.sidebar:
     st.header("🔍 Globaler Zeitfilter")
-    selected_label = st.selectbox("Zeitraum wählen", month_options)
+    if len(sorted_labels) >= 2:
+        # Slider von/bis über volle Monate
+        _slider_val = st.select_slider(
+            "Zeitraum",
+            options=sorted_labels,
+            value=(sorted_labels[0], sorted_labels[-1]),
+            key="slider_zeitraum",
+        )
+        _slider_von, _slider_bis = _slider_val
+        # Sonderoption: Gesamter Zeitraum wenn von==bis==erster/letzter
+        if _slider_von == sorted_labels[0] and _slider_bis == sorted_labels[-1]:
+            selected_label = "Gesamter Zeitraum"
+            _slider_range_active = False
+        elif _slider_von == _slider_bis:
+            selected_label = _slider_von
+            _slider_range_active = False
+        else:
+            selected_label = "__slider_range__"
+            _slider_range_active = True
+    elif len(sorted_labels) == 1:
+        st.info(f"📅 Nur 1 Monat verfügbar: {sorted_labels[0]}")
+        selected_label = sorted_labels[0]
+        _slider_range_active = False
+        _slider_von = _slider_bis = sorted_labels[0]
+    else:
+        selected_label = "Gesamter Zeitraum"
+        _slider_range_active = False
+        _slider_von = _slider_bis = None
 
 # ── Filter anwenden ───────────────────────────────────────────────────
 if selected_label == "Gesamter Zeitraum":
@@ -1141,21 +1202,28 @@ if selected_label == "Gesamter Zeitraum":
     filtered_ausgaben  = df_ausgaben.copy()
     filtered_einnahmen = df_einnahmen.copy()
 
-elif selected_label == "Benutzerdefinierter Zeitraum":
-    with st.sidebar:
-        col_s, col_e = st.columns(2)
-        min_d = (
-            df_ausgaben["Datum"].min().date()
-            if not df_ausgaben.empty and pd.notnull(df_ausgaben["Datum"].min())
-            else datetime.today().date()
-        )
-        start_date = col_s.date_input("Von", value=min_d)
-        end_date   = col_e.date_input("Bis", value=datetime.today().date())
-    start_dt = pd.to_datetime(start_date)
-    end_dt   = pd.to_datetime(end_date)
-    filtered_ausgaben  = df_ausgaben[(df_ausgaben["Datum"] >= start_dt) & (df_ausgaben["Datum"] <= end_dt)].copy()
-    filtered_einnahmen = df_einnahmen[(df_einnahmen["Datum"] >= start_dt) & (df_einnahmen["Datum"] <= end_dt)].copy()
-    diff = (end_date.year - start_date.year) * 12 + end_date.month - start_date.month + 1
+elif selected_label == "__slider_range__":
+    # Von/Bis-Bereich aus Slider (Änderung 4: Monatsbereich)
+    _tech_von = filter_mapping.get(_slider_von, "01-1970")
+    _tech_bis = filter_mapping.get(_slider_bis, "12-9999")
+    try:
+        _dt_von = datetime.strptime("01-" + _tech_von, "%d-%m-%Y")
+        _dt_bis = datetime.strptime("01-" + _tech_bis, "%d-%m-%Y")
+    except Exception:
+        _dt_von = datetime.min
+        _dt_bis = datetime.max
+    _dt_von_pd = pd.Timestamp(_dt_von)
+    # Letzter Tag des Bis-Monats
+    import calendar as _cal
+    _last_day = _cal.monthrange(_dt_bis.year, _dt_bis.month)[1]
+    _dt_bis_pd = pd.Timestamp(_dt_bis.replace(day=_last_day))
+    filtered_ausgaben  = df_ausgaben[
+        (df_ausgaben["Datum"] >= _dt_von_pd) & (df_ausgaben["Datum"] <= _dt_bis_pd)
+    ].copy()
+    filtered_einnahmen = df_einnahmen[
+        (df_einnahmen["Datum"] >= _dt_von_pd) & (df_einnahmen["Datum"] <= _dt_bis_pd)
+    ].copy()
+    diff = (_dt_bis.year - _dt_von.year) * 12 + _dt_bis.month - _dt_von.month + 1
     num_months = max(1, diff)
 
 else:
@@ -1168,7 +1236,9 @@ with st.sidebar:
     st.divider()
     if selected_label == "Gesamter Zeitraum":
         st.info(f"📅 Gesamter Zeitraum ({num_months} Monat/e)")
-    elif selected_label != "Benutzerdefinierter Zeitraum":
+    elif selected_label == "__slider_range__":
+        st.info(f"📅 {_slider_von} – {_slider_bis} ({num_months} Monat/e)")
+    else:
         st.info(f"📅 Aktiver Monat: {selected_label}")
     st.caption("⚡ Daten werden alle 10 Min. aktualisiert.")
 
@@ -1835,21 +1905,44 @@ with tabs[tab_idx("📈 Trends")]:
             with col_plt:
                 df_tk = df_ausgaben[df_ausgaben["Kategorie"].isin(sel_kats)].dropna(subset=["Datum"]).copy()
                 if not df_tk.empty:
-                    df_tk["Sort"]  = df_tk["Datum"].dt.strftime("%Y-%m")
+                    df_tk["Sort"]  = pd.to_datetime(df_tk["Datum"]).dt.strftime("%Y-%m")
                     df_tk["Monat"] = df_tk["Datum"].apply(datum_zu_monat)
-                    res = (
+                    # Änderung 2: Vollständige Monatssequenz aufbauen (Gap-Handling)
+                    _agg_kat = (
                         df_tk.dropna(subset=["Monat"])
                         .groupby(["Sort", "Monat", "Kategorie"])["Betrag"]
-                        .sum().reset_index().sort_values("Sort")
+                        .sum().reset_index()
                     )
-                    st.plotly_chart(
-                        px.line(
+                    if not _agg_kat.empty:
+                        _all_sorts = sorted(_agg_kat["Sort"].unique())
+                        _all_kats_sel = _agg_kat["Kategorie"].unique()
+                        _mi = pd.MultiIndex.from_product(
+                            [_all_sorts, _all_kats_sel], names=["Sort", "Kategorie"]
+                        )
+                        _agg_kat = (
+                            _agg_kat.set_index(["Sort", "Kategorie"])
+                            .reindex(_mi, fill_value=0)
+                            .reset_index()
+                        )
+                        # Monatslabel aus Sort-Spalte wiederherstellen
+                        def _sort_to_label(s):
+                            try:
+                                y, mn = s.split("-")
+                                return f"{MONATE_DE[mn]} {y}"
+                            except Exception:
+                                return s
+                        _agg_kat["Monat"] = _agg_kat["Sort"].apply(_sort_to_label)
+                        res = _agg_kat.sort_values("Sort")
+                        # x-Achse als geordnete kategorische Achse
+                        _x_order = [_sort_to_label(s) for s in _all_sorts]
+                        _fig_kat = px.line(
                             res, x="Monat", y="Betrag", color="Kategorie",
                             markers=True, color_discrete_sequence=COMPLEMENTARY_COLORS,
                             title="Monatliche Ausgaben nach Kategorie",
-                        ),
-                        use_container_width=True,
-                    )
+                            category_orders={"Monat": _x_order},
+                        )
+                        apply_pb_layout(_fig_kat, "Monatliche Ausgaben nach Kategorie")
+                        st.plotly_chart(_fig_kat, use_container_width=True)
 
         with trend_tabs[1]:
             sel_subs = []
@@ -1871,21 +1964,36 @@ with tabs[tab_idx("📈 Trends")]:
             with col_plt:
                 df_ts = df_ausgaben[df_ausgaben["Unterkategorie"].isin(sel_subs)].dropna(subset=["Datum"]).copy()
                 if not df_ts.empty:
-                    df_ts["Sort"]  = df_ts["Datum"].dt.strftime("%Y-%m")
+                    df_ts["Sort"]  = pd.to_datetime(df_ts["Datum"]).dt.strftime("%Y-%m")
                     df_ts["Monat"] = df_ts["Datum"].apply(datum_zu_monat)
-                    res = (
+                    # Änderung 2: Vollständige Monatssequenz aufbauen (Gap-Handling)
+                    _agg_sub = (
                         df_ts.dropna(subset=["Monat"])
                         .groupby(["Sort", "Monat", "Unterkategorie"])["Betrag"]
-                        .sum().reset_index().sort_values("Sort")
+                        .sum().reset_index()
                     )
-                    st.plotly_chart(
-                        px.line(
+                    if not _agg_sub.empty:
+                        _all_sorts_s = sorted(_agg_sub["Sort"].unique())
+                        _all_subs_sel = _agg_sub["Unterkategorie"].unique()
+                        _mi_s = pd.MultiIndex.from_product(
+                            [_all_sorts_s, _all_subs_sel], names=["Sort", "Unterkategorie"]
+                        )
+                        _agg_sub = (
+                            _agg_sub.set_index(["Sort", "Unterkategorie"])
+                            .reindex(_mi_s, fill_value=0)
+                            .reset_index()
+                        )
+                        _agg_sub["Monat"] = _agg_sub["Sort"].apply(_sort_to_label)
+                        res = _agg_sub.sort_values("Sort")
+                        _x_order_s = [_sort_to_label(s) for s in _all_sorts_s]
+                        _fig_sub = px.line(
                             res, x="Monat", y="Betrag", color="Unterkategorie",
                             markers=True, color_discrete_sequence=COMPLEMENTARY_COLORS,
                             title="Monatliche Ausgaben nach Unterkategorie",
-                        ),
-                        use_container_width=True,
-                    )
+                            category_orders={"Monat": _x_order_s},
+                        )
+                        apply_pb_layout(_fig_sub, "Monatliche Ausgaben nach Unterkategorie")
+                        st.plotly_chart(_fig_sub, use_container_width=True)
     else:
         st.info("Keine Ausgabendaten für Trend-Analyse verfügbar.")
 
