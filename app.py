@@ -1905,36 +1905,34 @@ with tabs[tab_idx("📈 Trends")]:
             with col_plt:
                 df_tk = df_ausgaben[df_ausgaben["Kategorie"].isin(sel_kats)].dropna(subset=["Datum"]).copy()
                 if not df_tk.empty:
-                    df_tk["Sort"]  = pd.to_datetime(df_tk["Datum"]).dt.strftime("%Y-%m")
-                    df_tk["Monat"] = df_tk["Datum"].apply(datum_zu_monat)
-                    # Änderung 2: Vollständige Monatssequenz aufbauen (Gap-Handling)
+                    df_tk["Sort"] = pd.to_datetime(df_tk["Datum"]).dt.strftime("%Y-%m")
+                    # Änderung 2: Gap-Handling via pivot_table (Arrow-kompatibel)
+                    def _sort_to_label(s):
+                        try:
+                            y, mn = s.split("-")
+                            return f"{MONATE_DE[mn]} {y}"
+                        except Exception:
+                            return s
                     _agg_kat = (
-                        df_tk.dropna(subset=["Monat"])
-                        .groupby(["Sort", "Monat", "Kategorie"])["Betrag"]
+                        df_tk.groupby(["Sort", "Kategorie"])["Betrag"]
                         .sum().reset_index()
                     )
                     if not _agg_kat.empty:
-                        _all_sorts = sorted(_agg_kat["Sort"].unique())
-                        _all_kats_sel = _agg_kat["Kategorie"].unique()
-                        _mi = pd.MultiIndex.from_product(
-                            [_all_sorts, _all_kats_sel], names=["Sort", "Kategorie"]
+                        # pivot → alle Monat/Kategorie-Kombinationen, fehlende = 0
+                        _pivot = _agg_kat.pivot_table(
+                            index="Sort", columns="Kategorie",
+                            values="Betrag", aggfunc="sum", fill_value=0,
                         )
-                        _agg_kat = (
-                            _agg_kat.set_index(["Sort", "Kategorie"])
-                            .reindex(_mi, fill_value=0)
-                            .reset_index()
-                        )
-                        # Monatslabel aus Sort-Spalte wiederherstellen
-                        def _sort_to_label(s):
-                            try:
-                                y, mn = s.split("-")
-                                return f"{MONATE_DE[mn]} {y}"
-                            except Exception:
-                                return s
-                        _agg_kat["Monat"] = _agg_kat["Sort"].apply(_sort_to_label)
-                        res = _agg_kat.sort_values("Sort")
-                        # x-Achse als geordnete kategorische Achse
-                        _x_order = [_sort_to_label(s) for s in _all_sorts]
+                        _pivot = _pivot.sort_index()
+                        _pivot.columns.name = None
+                        _pivot = _pivot.reset_index()
+                        # zurück in Langformat
+                        _all_kats_cols = [c for c in _pivot.columns if c != "Sort"]
+                        res = _pivot.melt(id_vars="Sort", value_vars=_all_kats_cols,
+                                          var_name="Kategorie", value_name="Betrag")
+                        res["Monat"] = res["Sort"].apply(_sort_to_label)
+                        res = res.sort_values("Sort").reset_index(drop=True)
+                        _x_order = [_sort_to_label(s) for s in sorted(_pivot["Sort"].unique())]
                         _fig_kat = px.line(
                             res, x="Monat", y="Betrag", color="Kategorie",
                             markers=True, color_discrete_sequence=COMPLEMENTARY_COLORS,
@@ -1964,28 +1962,26 @@ with tabs[tab_idx("📈 Trends")]:
             with col_plt:
                 df_ts = df_ausgaben[df_ausgaben["Unterkategorie"].isin(sel_subs)].dropna(subset=["Datum"]).copy()
                 if not df_ts.empty:
-                    df_ts["Sort"]  = pd.to_datetime(df_ts["Datum"]).dt.strftime("%Y-%m")
-                    df_ts["Monat"] = df_ts["Datum"].apply(datum_zu_monat)
-                    # Änderung 2: Vollständige Monatssequenz aufbauen (Gap-Handling)
+                    df_ts["Sort"] = pd.to_datetime(df_ts["Datum"]).dt.strftime("%Y-%m")
+                    # Änderung 2: Gap-Handling via pivot_table (Arrow-kompatibel)
                     _agg_sub = (
-                        df_ts.dropna(subset=["Monat"])
-                        .groupby(["Sort", "Monat", "Unterkategorie"])["Betrag"]
+                        df_ts.groupby(["Sort", "Unterkategorie"])["Betrag"]
                         .sum().reset_index()
                     )
                     if not _agg_sub.empty:
-                        _all_sorts_s = sorted(_agg_sub["Sort"].unique())
-                        _all_subs_sel = _agg_sub["Unterkategorie"].unique()
-                        _mi_s = pd.MultiIndex.from_product(
-                            [_all_sorts_s, _all_subs_sel], names=["Sort", "Unterkategorie"]
+                        _pivot_s = _agg_sub.pivot_table(
+                            index="Sort", columns="Unterkategorie",
+                            values="Betrag", aggfunc="sum", fill_value=0,
                         )
-                        _agg_sub = (
-                            _agg_sub.set_index(["Sort", "Unterkategorie"])
-                            .reindex(_mi_s, fill_value=0)
-                            .reset_index()
-                        )
-                        _agg_sub["Monat"] = _agg_sub["Sort"].apply(_sort_to_label)
-                        res = _agg_sub.sort_values("Sort")
-                        _x_order_s = [_sort_to_label(s) for s in _all_sorts_s]
+                        _pivot_s = _pivot_s.sort_index()
+                        _pivot_s.columns.name = None
+                        _pivot_s = _pivot_s.reset_index()
+                        _all_subs_cols = [c for c in _pivot_s.columns if c != "Sort"]
+                        res = _pivot_s.melt(id_vars="Sort", value_vars=_all_subs_cols,
+                                            var_name="Unterkategorie", value_name="Betrag")
+                        res["Monat"] = res["Sort"].apply(_sort_to_label)
+                        res = res.sort_values("Sort").reset_index(drop=True)
+                        _x_order_s = [_sort_to_label(s) for s in sorted(_pivot_s["Sort"].unique())]
                         _fig_sub = px.line(
                             res, x="Monat", y="Betrag", color="Unterkategorie",
                             markers=True, color_discrete_sequence=COMPLEMENTARY_COLORS,
